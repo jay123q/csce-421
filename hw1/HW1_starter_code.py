@@ -81,7 +81,7 @@ def knn_test_score(
     ########################
     neighbors = KNeighborsClassifier(n_neighbors)
     #neighbors.fit([x_train,y_train],[x_test,y_test])
-    neighbors.fit(x_train,x_test)
+    return ( neighbors.fit(x_train,x_test) )
     pass
 
 
@@ -104,9 +104,10 @@ def knn_evaluate_with_neighbours(
     ## Your Solution Here ##
     ########################
     neighbors = KNeighborsClassifier(n_neighbors=n_neighbors_min+n_neighbors_max)
-    xNeighbor = neighbors.fit(x_train,x_test)
-    yNeighbor = neighbors.fit(y_train,y_test)
-    return xNeighbor + yNeighbor
+   # xNeighbor = neighbors.fit(x_train,x_test)
+    #yNeighbor = neighbors.fit(y_train,y_test)
+    yNeighbor = neighbors.fit(x_train + y_train,x_test + y_test)
+    return yNeighbor
     pass
 
 
@@ -119,7 +120,11 @@ if __name__ == "__main__":
     # assert on shape
     features, label = extract_features_label(df)
     x_train, y_train, x_test, y_test = data_split(features, label, 0.33)
+    #print(x_train)
+    #print(y_train)
+    #print(x_test)
+    #print(y_test)
     print(knn_test_score(1, x_train, y_train, x_test, y_test))
-    #acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
-    #plt.plot(range(1, 11), acc)
-    #plt.show()
+    acc = knn_evaluate_with_neighbours(1, 10, x_train, y_train, x_test, y_test)
+    plt.plot(range(1, 11), acc)
+    plt.show()
