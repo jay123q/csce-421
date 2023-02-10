@@ -49,17 +49,13 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         Separate input data and labels, remove NaN values. Execute this for both dataframes.
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
-    dataTrain = df_train.dropna()
-    # labelTrain = dataTrain.squeeze()
-    
-    dataTest = df_test.dropna()
-    # labelTest = dataTest.squeeze()
-
-    dataTrain = np.nan_to_num(df_train)
-    labelTrain = df_train.columns
-    dataTest = np.nan_to_num(df_test)
-    labelTest = df_test.columns
-    print("train data ",dataTrain," label 1 test ",labelTest," data test ",dataTest," label test 2 ",labelTest)
+    df_train = df_train.dropna()
+    df_test = df_test.dropna()
+    dataTrain = df_train['x']
+    labelTrain = df_train['y']
+    dataTest = df_test['x']
+    labelTest = df_test['y']
+   # print("train data ",dataTrain," label 1 test ",labelTest," data test ",dataTest," label test 2 ",labelTest)
     return dataTrain,labelTrain,dataTest,labelTest
     ########################
     ## Your Solution Here ##
@@ -129,6 +125,9 @@ def build_model(train_X: np.array, train_y: np.array):
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
     '''
+    train_X = np.expand_dims(train_X, -1)
+    train_y = np.expand_dims(train_y , -1)
+    #print(train_X.shape, train_y.shape)
     linearModel = LinearRegression()
     return linearModel.fit(train_X, train_y)
    
@@ -142,6 +141,8 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
+    X_test = np.expand_dims(X_test, -1)
+    print(X_test.shape)
     return model.predict(X_test)
     ########################
     ## Your Solution Here ##
@@ -154,6 +155,7 @@ def MSE(y_test, pred):
     '''
         return the mean square error corresponding to your prediction
     '''
+    y_test = np.expand_dims(y_test, -1)
     return (np.sum(y_test - pred))**2/len(y_test)
     ########################
     ## Your Solution Here ##
@@ -381,8 +383,9 @@ if __name__ == "__main__":
     df_train, df_test = read_train_data(data_path_train), read_test_data(data_path_test)
 
     train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
+    #print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
     model = build_model(train_X, train_y)
-
+ 
     # Make prediction with test set
     ### YOUR CODE HERE
     preds = pred_func(model, test_X)
