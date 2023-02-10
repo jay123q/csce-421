@@ -50,10 +50,16 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
         return tuple of numpy arrays(train_data, train_label, test_data, test_label).
     '''
     dataTrain = df_train.dropna()
-    labelTrain = df_train.squeeze()
+    # labelTrain = dataTrain.squeeze()
+    
     dataTest = df_test.dropna()
-    labelTest = df_test.squeeze()
-    print(dataTrain,labelTrain,dataTest,labelTest)
+    # labelTest = dataTest.squeeze()
+
+    dataTrain = np.nan_to_num(df_train)
+    labelTrain = df_train.columns
+    dataTest = np.nan_to_num(df_test)
+    labelTest = df_test.columns
+    print("train data ",dataTrain," label 1 test ",labelTest," data test ",dataTest," label test 2 ",labelTest)
     return dataTrain,labelTrain,dataTest,labelTest
     ########################
     ## Your Solution Here ##
@@ -73,10 +79,10 @@ class LinearRegression:
         self.m, self.n = X.shape
         self.W = np.zeros(self.n)
         # data
-      
-        self.b = 0
         self.X = X
         self.Y = Y
+        self.b = 0
+
         # gradient descent learning 
 
         for i in range(self.iterations):
@@ -88,17 +94,16 @@ class LinearRegression:
 
       
     # Helper function to update weights in gradient descent      
-    def update_weights(self):
 
+    def predict(self,X):
         # predict on data and calculate gradients 
-        return X.dot(self.W) + self.y
+        return X.dot(self.W) + self.b
           
         # update weights
         ### YOUR CODE HERE
         ### YOUR CODE HERE  
       
-    # Hypothetical function  h( x )       
-    def predict(self, X):
+    def update_weights(self):
         Y_pred = self.predict(self.X)
 
         dW = - (2 * (self.X.T).dot(self.Y - Y_pred)) / self.m
@@ -124,8 +129,8 @@ def build_model(train_X: np.array, train_y: np.array):
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
     '''
-    linearModel = LinearRegression().fit(train_X, train_y)
-    return linearModel
+    linearModel = LinearRegression()
+    return linearModel.fit(train_X, train_y)
    
     ########################
     ## Your Solution Here ##
@@ -137,9 +142,11 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
+    return model.predict(X_test)
     ########################
     ## Your Solution Here ##
     ########################
+
     pass
 
 # Calculate and print the mean square error of your prediction
@@ -147,6 +154,7 @@ def MSE(y_test, pred):
     '''
         return the mean square error corresponding to your prediction
     '''
+    return (np.sum(y_test - pred))**2/len(y_test)
     ########################
     ## Your Solution Here ##
     ########################
@@ -164,6 +172,14 @@ def read_training_data(filename: str) -> tuple:
         read train data into a dataframe df1, store the top 10 entries of the dataframe in df2
         and return a tuple of the form (df1, df2, shape of df1)   
     '''
+    df1 = pd.read_csv(filename)
+    for i in range(10):
+        if( i == 0):
+            df2 = df1.loc[i]
+        else:
+            df2.append(df1.loc[i])
+    
+    return(df1, df2 , df1.shape )
     ########################
     ## Your Solution Here ##
     ########################
@@ -175,6 +191,13 @@ def data_clean(df_train: pd.DataFrame) -> tuple:
         check for any missing values in the data and store the missing values in series s, drop the entries corresponding 
         to the missing values and store dataframe in df_train and return a tuple in the form: (s, df_train)
     '''
+    s = df_train.isnull()
+    
+    print( "Missing values ", df_train.isnull().sum() )
+    df_train = df_train[df_train.Salary != 0]
+    return s, df_train
+
+
     ########################
     ## Your Solution Here ##
     ########################
@@ -186,6 +209,9 @@ def feature_extract(df_train: pd.DataFrame) -> tuple:
         Separate the data from labels.
         return a tuple of the form: (features(dtype: pandas.core.frame.DataFrame), label(dtype: pandas.core.series.Series))
     '''
+    labelColumn = df_train['NewLeague'].squeeze()
+    df_train = df_train.drop(columns="NewLeague")
+    return df_train, labelColumn
     ########################
     ## Your Solution Here ##
     ########################
@@ -197,6 +223,11 @@ def data_preprocess(feature: pd.DataFrame) -> pd.DataFrame:
         include = ['int64', 'float64']). Afterwards, use get dummies for transforming to categorical. Then concat both parts (pd.concat()).
         and return the concatenated dataframe.
     '''
+    nonnumericalColumn = feature.select_dtypes( exclude= ['int64','float64'])
+    wholeColumn = feature.select_dtypes( include= ['int64','float64'])
+    dummy = pd.get_dummies(nonnumericalColumn)
+    wholeFeature = pd.concat( [wholeColumn , dummy] )
+    return wholeFeature
     ########################
     ## Your Solution Here ##
     ########################
@@ -206,6 +237,7 @@ def label_transform(labels: pd.Series) -> pd.Series:
     '''
         Transform the labels into numerical format and return the labels
     '''
+    return labels.replace({ 'A':0, 'N':1})
     ########################
     ## Your Solution Here ##
     ########################
@@ -221,6 +253,7 @@ def data_split(features: pd.DataFrame, label:pd.Series, random_state  = 42) -> T
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
+    return train_test_split( features, label , test_size = 0.2, random_state=42 )
     ########################
     ## Your Solution Here ##
     ########################
@@ -359,7 +392,7 @@ if __name__ == "__main__":
     ### YOUR CODE HERE
     mean_square_error = MSE(test_y, preds)
     ### YOUR CODE HERE
-
+    print(mean_square_error)
     # plot your prediction and labels, you can save the plot and add in the report
     ### YOUR CODE HERE
 
@@ -375,7 +408,7 @@ if __name__ == "__main__":
     ################
     ################
     ### YOUR CODE HERE
-    data_path_training   = "/path/Hitters.csv"
+    data_path_training   = "Hitters.csv"
     ### YOUR CODE HERE
 
     train_df, df2, df_train_shape = read_training_data(data_path_training)
