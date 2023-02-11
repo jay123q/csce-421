@@ -21,14 +21,25 @@ import scipy.stats
 
 
 # Download and read the data.
-def read_data(filename: str) -> pd.DataFrame:
+def read_train_data(filename: str) -> pd.DataFrame:
     '''
-        read data and return dataframe
+        read train data and return dataframe
     '''
+    return pd.read_csv(filename)
+
     ########################
     ## Your Solution Here ##
     ########################
+    pass
+
+def read_test_data(filename: str) -> pd.DataFrame:
+    '''
+        read test data and return dataframe
+    '''
     return pd.read_csv(filename)
+    ########################
+    ## Your Solution Here ##
+    ########################
     pass
 
 
@@ -52,11 +63,11 @@ def prepare_data(df_train: pd.DataFrame, df_test: pd.DataFrame) -> tuple:
     pass
 
 # Implement LinearRegression class
-class LinearRegression_Local:   
+class LinearRegression:   
     def __init__(self, learning_rate=0.00001, iterations=30):        
         self.learning_rate = learning_rate
         self.iterations    = iterations
-
+          
     # Function for model training         
     def fit(self, X, Y):
         # weight initialization
@@ -75,8 +86,19 @@ class LinearRegression_Local:
 
 
         return self
+        
 
+      
     # Helper function to update weights in gradient descent      
+
+    def predict(self,X):
+        # predict on data and calculate gradients 
+        return X.dot(self.W) + self.b
+          
+        # update weights
+        ### YOUR CODE HERE
+        ### YOUR CODE HERE  
+      
     def update_weights(self):
         Y_pred = self.predict(self.X)
 
@@ -88,10 +110,7 @@ class LinearRegression_Local:
 
         return self
 
-    # Hypothetical function  h( x )       
-    def predict(self, X):
-        # predict on data and calculate gradients 
-        return X.dot(self.W) + self.b
+        pass
         ### YOUR CODE HERE
         ### YOUR CODE HERE  
 
@@ -111,6 +130,7 @@ def build_model(train_X: np.array, train_y: np.array):
     #print(train_X.shape, train_y.shape)
     linearModel = LinearRegression()
     return linearModel.fit(train_X, train_y)
+   
     ########################
     ## Your Solution Here ##
     ########################
@@ -127,6 +147,7 @@ def pred_func(model, X_test):
     ########################
     ## Your Solution Here ##
     ########################
+
     pass
 
 # Calculate and print the mean square error of your prediction
@@ -154,8 +175,12 @@ def read_training_data(filename: str) -> tuple:
         and return a tuple of the form (df1, df2, shape of df1)   
     '''
     df1 = pd.read_csv(filename)
-    df2 = df1.index[0:10]
-
+    for i in range(10):
+        if( i == 0):
+            df2 = df1.loc[i]
+        else:
+            df2.append(df1.loc[i])
+    
     return(df1, df2 , df1.shape )
     ########################
     ## Your Solution Here ##
@@ -168,17 +193,13 @@ def data_clean(df_train: pd.DataFrame) -> tuple:
         check for any missing values in the data and store the missing values in series s, drop the entries corresponding 
         to the missing values and store dataframe in df_train and return a tuple in the form: (s, df_train)
     '''
-    s = df_train.isnull().sum()
-    #print(df_train.isnull())
-    #print( "Missing values ", df_train.isnull().sum() )
-
-
-    # this is not dropping properly
-
-    df_train = df_train.dropna( )
-    #print(df_train.isnull())
-    print(df_train)
+    s = df_train.isnull()
+    
+    print( "Missing values ", df_train.isnull().sum() )
+    df_train = df_train[df_train.Salary != 0]
     return s, df_train
+
+
     ########################
     ## Your Solution Here ##
     ########################
@@ -190,7 +211,7 @@ def feature_extract(df_train: pd.DataFrame) -> tuple:
         Separate the data from labels.
         return a tuple of the form: (features(dtype: pandas.core.frame.DataFrame), label(dtype: pandas.core.series.Series))
     '''
-    labelColumn = df_train['NewLeague']
+    labelColumn = df_train['NewLeague'].squeeze()
     df_train = df_train.drop(columns="NewLeague")
     return df_train, labelColumn
     ########################
@@ -234,8 +255,7 @@ def data_split(features: pd.DataFrame, label:pd.Series, random_state  = 42) -> T
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-    #return train_test_split( features, label , test_size = 0.2, random_state=42 )
-
+    return train_test_split( features, label , test_size = 0.2, random_state=42 )
     ########################
     ## Your Solution Here ##
     ########################
@@ -316,7 +336,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     ########################
     pass
 
-def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.Series) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+def train_test_folds(skf, num_of_folds: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
     '''
         train and test in for loop with different training and test sets obatined from skf. 
         use a PENALTY of 12 for logitic regression model for training
@@ -332,8 +352,8 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
 
 def is_features_count_changed(features_count: np.array) -> bool:
     '''
-        compare number of features in each fold (features_count array's each element)
-        return true if features count doesn't change in each fold. else return false
+       compare number of features in each fold (features_count array's each element)
+       return true if features count doesn't change in each fold. else return false
     '''
     ########################
     ## Your Solution Here ##
@@ -353,49 +373,53 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
     pass 
 
 if __name__ == "__main__":
-
     ################
     ################
     ## Q1
     ################
     ################
-    # data_path_train   = "LinearRegression/train.csv"
-    # data_path_test    = "LinearRegression/test.csv"
-    # df_train, df_test = read_data(data_path_train), read_data(data_path_test)
+    data_path_train   = "LinearRegression/train.csv"
+    data_path_test    = "LinearRegression/test.csv"
+    df_train, df_test = read_train_data(data_path_train), read_test_data(data_path_test)
 
-    # train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
-    # model = build_model(train_X, train_y)
+    train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
+    #print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
+    model = build_model(train_X, train_y)
+ 
+    # Make prediction with test set
+    ### YOUR CODE HERE
+    preds = pred_func(model, test_X)
+    ### YOUR CODE HERE 
 
-    # # Make prediction with test set
-    # preds = pred_func(model, test_X)
+    # Calculate and print the mean square error of your prediction
+    ### YOUR CODE HERE
+    mean_square_error = MSE(test_y, preds)
+    ### YOUR CODE HERE
+    print(mean_square_error)
+    # plot your prediction and labels, you can save the plot and add in the report
+    ### YOUR CODE HERE
 
-    # # Calculate and print the mean square error of your prediction
-    # mean_square_error = MSE(test_y, preds)
-
-    # # plot your prediction and labels, you can save the plot and add in the report
-
-    # plt.plot(test_y, label='label')
-    # plt.plot(preds, label='pred')
-    # plt.legend()
-    # plt.show()
-
+    plt.plot(test_y, label='label')
+    plt.plot(preds, label='pred')
+    plt.legend()
+    plt.show()
+    ### YOUR CODE HERE
 
     ################
     ################
     ## Q2
     ################
     ################
-
+    ### YOUR CODE HERE
     data_path_training   = "Hitters.csv"
-
+    ### YOUR CODE HERE
 
     train_df, df2, df_train_shape = read_training_data(data_path_training)
     s, df_train_mod = data_clean(train_df)
     features, label = feature_extract(df_train_mod)
     final_features  = data_preprocess(features)
     final_label     = label_transform(label)
-    print(final_features.shape)
-    print(final_label.shape)
+
     ################
     ################
     ## Q3
@@ -427,22 +451,24 @@ if __name__ == "__main__":
 
     log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(logistic_model, X_test, y_test)
 
-
-    plt.plot(log_reg_fpr, log_reg_tpr, label='logistic')
+    ### YOUR CODE HERE
+    # plot your prediction and labels
+    plt.plot(log_reg_fpr, log_reg_fpr, label='logistic')
     plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
     plt.legend()
     plt.show()
     
-    linear_optimal_threshold, log_optimal_threshold = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
+    linear_threshod, linear_threshod = optimal_thresholds(y_test, linear_y_pred, log_y_pred, linear_threshold, log_threshold)
 
     skf = stratified_k_fold_cross_validation(num_of_folds, final_features, final_label)
-    features_count, auc_log, auc_linear, f1_dict = train_test_folds(skf, num_of_folds, final_features, final_label)
+    features_count, auc_log, auc_linear, f1_dict = train_test_folds(skf, num_of_folds)
 
     print("Does features change in each fold?")
 
     # call is_features_count_changed function and return true if features count changes in each fold. else return false
     is_features_count_changed = is_features_count_changed(features_count)
 
+    linear_threshold, log_threshold = optimal_thresholds(linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
     print(is_features_count_changed)
 
     auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = 0, 0, 0
@@ -456,12 +482,10 @@ if __name__ == "__main__":
     #Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
     #Find mean and 95% confidence interval for the f1 score for each model.
 
-    auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = assignment2.mean_confidence_interval(auc_linear)
-    auc_log_mean, auc_log_open_interval, auc_log_close_interval = assignment2.mean_confidence_interval(auc_log)
-
-    f1_linear_mean, f1_linear_open_interval, f1_linear_close_intervel = assignment2.mean_confidence_interval(f1_dict['linear_reg'])
-    f1_log_mean, f1_log_open_interval, f1_log_close_interval = assignment2.mean_confidence_interval(f1_dict['log_reg']) 
-
+    mean_confidence_interval(auc_log)
+    mean_confidence_interval(auc_linear)
+    mean_confidence_interval(f1_dict['log_reg'])
+    mean_confidence_interval(f1_dict['linear_reg'])
 
 
 
