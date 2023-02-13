@@ -328,7 +328,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
-
+    return StratifiedKFold( features ,  label ,n_splits=num_of_folds ,shuffle= True  )
     ########################
     ## Your Solution Here ##
     ########################
@@ -343,9 +343,54 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         populate f1_dict['log_reg'] and f1_dict['linear_reg'] arrays with f1_score of trained logistic and linear regression models on each set
         return features_count, auc_log, auc_linear, f1_dict dictionary
     '''
-    ########################
+    # for train_index, test_index in skf.split(features,label):
+    #     X_train, X_test = features[train_index], label[test_index]    
+    #     Y_train, Y_test = features[train_index], label[test_index]
+    features = []
+    for train_index, test_index in skf.split(features,label):
+        X_train, X_test = features[train_index], label[test_index]
+
+
+    linearReg = LinearRegression()
+    logReg = LogisticRegression()
+    f1_dict = {"log_reg":[],"linear_reg":[]}
+    paramLogistic = { label : features, 'penalty':'l2' }
+    paramLinear = { label : features }
+    cvLinear = GridSearchCV(linearReg, paramLinear, cv= num_of_folds)
+    cvLogistic = GridSearchCV(logReg , paramLogistic, cv= num_of_folds)
+
+    for i, (trainIndex, testIndex) in enumerate(cvLogistic):
+        logReg.fit(features[trainIndex], label[testIndex])
+        features.append( features[X_test] )
+        f1_dict["linear_reg"].append(logReg.score(features[X_train], label[X_test]))    
+
+    for i, (trainIndex, testIndex) in enumerate(cvLinear):
+        linearReg.fit(features[trainIndex], label[testIndex])
+        features.append( features[X_test] )
+        f1_dict["linear_reg"].append(linearReg.score(features[X_train], label[X_test]))    
+    # for i, (trainIndex, testIndex) in enumerate(cvLogistic):
+    #     logReg.fit(features[trainIndex], label[testIndex])
+    #     f1_dict["linear_reg"].append(logReg.score(features[trainIndex], label[testIndex]))    
+
+    # for i, (trainIndex, testIndex) in enumerate(cvLinear):
+    #     linearReg.fit(features[trainIndex], label[testIndex])
+    #     f1_dict["linear_reg"].append(linearReg.score(features[trainIndex], label[testIndex]))
+
+
+    # find auc log and roc_auc score
+
+    #logreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
+    predictLog = logReg.predict_proba(X_test)[:,1]
+    auc_log = metrics.roc_auc_score( logReg , predictLog )    
+    
+    #linearreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
+    predictLinear = linearReg.predict_proba(X_test)[:,1]
+    auc_linear = metrics.roc_auc_score( linearReg , predictLinear )
+
+
     ## Your Solution Here ##
     ########################
+    return len(features) , auc_log, auc_linear, f1_dict
     pass
 
 def is_features_count_changed(features_count: np.array) -> bool:
