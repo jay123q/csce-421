@@ -234,7 +234,7 @@ def data_split(features: pd.DataFrame, label:pd.Series, random_state  = 42) -> T
         Split 80% of data as a training set and the remaining 20% of the data as testing set using the given random state
         return training and testing sets in the following order: X_train, X_test, y_train, y_test
     '''
-    #return train_test_split( features, label , test_size = 0.2, random_state=42 )
+    return train_test_split( features, label , test_size = 0.2, random_state=42 )
 
     ########################
     ## Your Solution Here ##
@@ -246,6 +246,11 @@ def train_linear_regression( x_train: np.ndarray, y_train:np.ndarray):
         Instantiate an object of LinearRegression class, train the model object
         using training data and return the model object
     '''
+    x_train = np.expand_dims(x_train, -1)
+    y_train = np.expand_dims(y_train , -1)
+    linearModel = LinearRegression()
+    return linearModel.fit(x_train,y_train)
+
     ########################
     ## Your Solution Here ##
     ########################
@@ -256,6 +261,10 @@ def train_logistic_regression( x_train: np.ndarray, y_train:np.ndarray, max_iter
         use provided max_iterations for training logistic model
         using training data and return the model object
     '''
+    x_train = np.expand_dims(x_train, -1)
+    y_train = np.expand_dims(y_train , -1)
+    logisticalRegression = LogisticRegression()
+    return logisticalRegression.fit(x_train, y_train)
     ########################
     ## Your Solution Here ##
     ########################
@@ -266,6 +275,10 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
         return the tuple consisting the coefficients for each feature for Linear Regression 
         and Logistic Regression Models respectively
     '''
+    linearCoe = pd.DataFrame(linear_model.coef_, X.columns, columns=['Coefficients'])
+    logisticalCoe = pd.DataFrame(logistic_model.coef_, X.columns, columns=['Coefficients'])
+    # this logic is from https://stackoverflow.com/questions/26951880/scikit-learn-linear-regression-how-to-get-coefficients-respective-features
+    return linearCoe, logisticalCoe
     ########################
     ## Your Solution Here ##
     ########################
@@ -278,6 +291,7 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
         [linear_reg_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
+    return linear_model.roc_auc_score(x_test, y_test)
     ########################
     ## Your Solution Here ##
     ########################
@@ -290,6 +304,7 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
         [log_reg_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
+    return logistic_model.roc_auc_score(x_test, y_test)
     ########################
     ## Your Solution Here ##
     ########################
@@ -301,6 +316,9 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
     '''
+    linear_threshold = pd.DataFrame({'FPR':linear_reg_fpr, 'TPR':linear_reg_tpr, 'Threshold':linear_threshold})
+    log_threshold = pd.DataFrame({'FPR':log_reg_fpr, 'TPR':log_reg_tpr, 'Threshold':log_threshold})
+    return linear_threshold, log_threshold
     ########################
     ## Your Solution Here ##
     ########################
@@ -359,25 +377,26 @@ if __name__ == "__main__":
     ## Q1
     ################
     ################
-    # data_path_train   = "LinearRegression/train.csv"
-    # data_path_test    = "LinearRegression/test.csv"
-    # df_train, df_test = read_data(data_path_train), read_data(data_path_test)
+    data_path_train   = "LinearRegression/train.csv"
+    data_path_test    = "LinearRegression/test.csv"
+    df_train, df_test = read_data(data_path_train), read_data(data_path_test)
+    # print(df_train.head(n=10))
+    # print(df_test.head(n=10))
+    train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
+    model = build_model(train_X, train_y)
 
-    # train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
-    # model = build_model(train_X, train_y)
+    # Make prediction with test set
+    preds = pred_func(model, test_X)
 
-    # # Make prediction with test set
-    # preds = pred_func(model, test_X)
+    # Calculate and print the mean square error of your prediction
+    mean_square_error = MSE(test_y, preds)
 
-    # # Calculate and print the mean square error of your prediction
-    # mean_square_error = MSE(test_y, preds)
+    # plot your prediction and labels, you can save the plot and add in the report
 
-    # # plot your prediction and labels, you can save the plot and add in the report
-
-    # plt.plot(test_y, label='label')
-    # plt.plot(preds, label='pred')
-    # plt.legend()
-    # plt.show()
+    plt.plot(test_y, label='label')
+    plt.plot(preds, label='pred')
+    plt.legend()
+    plt.show()
 
 
     ################
