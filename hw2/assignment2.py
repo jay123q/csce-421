@@ -118,10 +118,10 @@ def build_model(train_X: np.array, train_y: np.array):
         using training data and return the model object
     '''
 
-    train_X = np.expand_dims(train_X, -1)
-    train_y = np.expand_dims(train_y, -1)
+    # train_X = np.expand_dims(train_X, -1)
+    # train_y = np.expand_dims(train_y, -1)
     # print(train_X.shape, train_y.shape)
-    linearModel = LinearRegression()
+    linearModel = LinearRegression_Local()
     linearModel.fit(train_X, train_y)
 
     return linearModel
@@ -137,7 +137,7 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-    X_test = np.expand_dims(X_test, -1)
+    # X_test = np.expand_dims(X_test, -1)
     # print(X_test.shape)
     # print(X_test.shape)
     return model.predict(X_test)
@@ -269,8 +269,8 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
         Instantiate an object of LinearRegression_Local class, train the model object
         using training data and return the model object
     '''
-    x_train = np.expand_dims(x_train, -1)
-    y_train = np.expand_dims(y_train, -1)
+    # x_train = np.expand_dims(x_train, -1)
+    # y_train = np.expand_dims(y_train, -1)
     # print(x_train.shape)
     # print(y_train.shape)
 
@@ -290,8 +290,8 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
         use provided max_iterations for training logistic model
         using training data and return the model object
     '''
-    x_train = np.expand_dims(x_train, -1)
-    y_train = np.expand_dims(y_train, -1)
+    # x_train = np.expand_dims(x_train, -1)
+    # y_train = np.expand_dims(y_train, -1)
     logisticalRegression = LogisticRegression(max_iter=max_iter)
     logisticalRegression.fit(x_train, y_train,)
     return logisticalRegression
@@ -322,12 +322,14 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
         [linear_reg_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
-    y_pred_prob = linear_model.predict(x_test)[::,1]
-    fpr,tpr,linear_threshold = metrics.roc_score( y_test, y_pred_prob)
-    predict = precision_score( y_test , y_pred_prob )
-    reg_area = roc_auc_score( y_test , y_pred_prob)
+    # linear_model.fit(x_test,y_test)
+    y_pred = linear_model.predict(x_test)
+
+    fpr,tpr,linear_threshold = metrics.roc_score( y_test, y_pred )
+    # predict = precision_score( y_test , y_pred_prob )
+    reg_area = metrics.roc_auc_score( y_test , y_pred )
     #print(predict,fpr,tpr,linear_threshold,reg_area)
-    return predict,fpr,tpr,linear_threshold,reg_area
+    return y_pred,fpr,tpr,linear_threshold,reg_area
     ########################
     ## Your Solution Here ##
     ########################
@@ -341,11 +343,14 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
         [log_reg_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve]
         Finally plot the ROC Curve
     '''
-    y_pred_prob = logistic_model.predict_proba(x_test)[::,1]
-    fpr,tpr,log_threshold = metrics.roc_score( y_test, y_pred_prob)
-    predict = precision_score( y_test , y_pred_prob )
+    # logistic_model.fit(x_test,y_test)
+    y_pred_prob = logistic_model.predict_proba(x_test)[:,1]
+
+    fpr,tpr,logisticThreshold = metrics.roc_score( y_test, y_pred_prob)
+    # predict = precision_score( y_test , y_pred_prob )
     reg_area = roc_auc_score( y_test , y_pred_prob)
-    return predict,fpr,tpr,log_threshold,reg_area
+    #print(predict,fpr,tpr,linear_threshold,reg_area)
+    return y_pred_prob,fpr,tpr,logisticThreshold,reg_area
     ########################
     ## Your Solution Here ##
     ########################
@@ -356,11 +361,11 @@ def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray,
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
     '''
-    linear_threshold = pd.DataFrame(
-        {'FPR': linear_reg_fpr, 'TPR': linear_reg_tpr, 'Threshold': linear_threshold})
-    log_threshold = pd.DataFrame(
-        {'FPR': log_reg_fpr, 'TPR': log_reg_tpr, 'Threshold': log_threshold})
-    return linear_threshold, log_threshold
+    linearMax = np.argmax(
+        linear_reg_tpr - linear_reg_fpr)
+    logMax = np.argmax(
+        log_reg_tpr - log_reg_fpr)
+    return linear_threshold[linearMax], log_threshold[logMax]
     ########################
     ## Your Solution Here ##
     ########################
@@ -371,7 +376,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
-    return StratifiedKFold(features,  label, n_splits=num_of_folds, shuffle=shuffle)
+    return StratifiedKFold(n_splits=num_of_folds, shuffle=shuffle)
     ########################
     ## Your Solution Here ##
     ########################
@@ -388,28 +393,42 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         return features_count, auc_log, auc_linear, f1_dict dictionary
     '''
 
-    linearReg = LinearRegression()
+    linearReg = LinearRegression_Local()
     logReg = LogisticRegression()
     features = []
     f1_dict = {"log_reg": [], "linear_reg": []}
     paramLogistic = {label: features, 'penalty': 'l2'}
     paramLinear = {label: features}
-    cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
-    cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
+    # cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
+    # cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
 
 
-    for train_index, test_index in skf.split(features, label):
+    # # for train_index, test_index in skf.split(features, label):
+    # #     X_train, X_test = features[train_index], label[test_index]
+
+
+    # # for i, (trainIndex, testIndex) in enumerate(cvLogistic):
+    # #     logReg.fit(features[trainIndex], label[testIndex])
+    # #     features.append(features[X_test])
+    # #     f1_dict["linear_reg"].append(
+    # #         logReg.score(features[X_train], label[X_test]))
+
+    # # for i, (trainIndex, testIndex) in enumerate(cvLinear):
+    # #     linearReg.fit(features[trainIndex], label[testIndex])
+    # #     features.append(features[X_test])
+    # #     f1_dict["linear_reg"].append(
+    # #         linearReg.score(features[X_train], label[X_test]))    
+    # cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
+    # cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
+
+
+    for train_index, test_index in enumerate(skf.split(features, label)):
         X_train, X_test = features[train_index], label[test_index]
-
-
-    for i, (trainIndex, testIndex) in enumerate(cvLogistic):
-        logReg.fit(features[trainIndex], label[testIndex])
+        logReg.fit(features[X_train], label[X_test])
         features.append(features[X_test])
         f1_dict["linear_reg"].append(
             logReg.score(features[X_train], label[X_test]))
-
-    for i, (trainIndex, testIndex) in enumerate(cvLinear):
-        linearReg.fit(features[trainIndex], label[testIndex])
+        linearReg.fit(features[X_train], label[X_test])
         features.append(features[X_test])
         f1_dict["linear_reg"].append(
             linearReg.score(features[X_train], label[X_test]))
@@ -418,16 +437,16 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
     # find auc log and roc_auc score
 
     # logreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
-    predictLog = logReg.predict_proba(X_test)[:, 1]
+    predictLog = logReg.predict_proba(X_test)
     auc_log = roc_auc_score(logReg, predictLog)
 
     # linearreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
-    predictLinear = linearReg.predict_proba(X_test)[:, 1]
+    predictLinear = linearReg.predict_proba(X_test)
     auc_linear = roc_auc_score(linearReg, predictLinear)
 
     ## Your Solution Here ##
     ########################
-    return len(features), auc_log, auc_linear, f1_dict
+    return features, auc_log, auc_linear, f1_dict
     pass
 
 
@@ -436,7 +455,7 @@ def is_features_count_changed(features_count: np.array) -> bool:
         compare number of features in each fold (features_count array's each element)
         return true if features count doesn't change in each fold. else return false
     '''
-    linearReg = LinearRegression()
+    linearReg = LinearRegressionz()
     logReg = LogisticRegression()
     f1_dict = {"log_reg": [], "linear_reg": []}
     paramLogistic = {label: features, 'penalty': 'l2'}
@@ -469,9 +488,9 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
         The required interval is from mean-h to mean+h
         return the tuple consisting of mean, mean -h, mean+h
     '''
-    mean = scipy.stats.rv_continuous.interval( 0.95 )
+    mean = scipy.stats.rv_continuous.interval( confidence )
     std = scipy.stats.sem( data )
-    h = scipy.stats.rv_continuous.ppf( q = confidence , loc = data) * std
+    h = scipy.stats.rv_continuous.ppf( confidence , loc = data) * std
     return mean, mean-h, mean+h
 
     ########################
@@ -482,7 +501,7 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
 
 if __name__ == "__main__":
 
-    ################
+    ###############
     ################
     # Q1
     ################
@@ -551,8 +570,8 @@ if __name__ == "__main__":
 
 
 
-    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
-        linear_model, X_test, y_test)
+    # linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+    #     linear_model, X_test, y_test)
 
     log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
