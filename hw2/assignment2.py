@@ -14,6 +14,7 @@ from sklearn.metrics import f1_score
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
 from sklearn.metrics import precision_score, recall_score
 from typing import Tuple, List
 import scipy.stats
@@ -325,7 +326,7 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
     # linear_model.fit(x_test,y_test)
     y_pred = linear_model.predict(x_test)
 
-    fpr,tpr,linear_threshold = metrics.roc_score( y_test, y_pred )
+    fpr,tpr,linear_threshold = metrics.roc_curve( y_test, y_pred )
     # predict = precision_score( y_test , y_pred_prob )
     reg_area = metrics.roc_auc_score( y_test , y_pred )
     #print(predict,fpr,tpr,linear_threshold,reg_area)
@@ -346,9 +347,9 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
     # logistic_model.fit(x_test,y_test)
     y_pred_prob = logistic_model.predict_proba(x_test)[:,1]
 
-    fpr,tpr,logisticThreshold = metrics.roc_score( y_test, y_pred_prob)
+    fpr,tpr,logisticThreshold = metrics.roc_curve( y_test, y_pred_prob)
     # predict = precision_score( y_test , y_pred_prob )
-    reg_area = roc_auc_score( y_test , y_pred_prob)
+    reg_area = metrics.roc_auc_score( y_test , y_pred_prob)
     #print(predict,fpr,tpr,linear_threshold,reg_area)
     return y_pred_prob,fpr,tpr,logisticThreshold,reg_area
     ########################
@@ -455,7 +456,7 @@ def is_features_count_changed(features_count: np.array) -> bool:
         compare number of features in each fold (features_count array's each element)
         return true if features count doesn't change in each fold. else return false
     '''
-    linearReg = LinearRegressionz()
+    linearReg = LinearRegression()
     logReg = LogisticRegression()
     f1_dict = {"log_reg": [], "linear_reg": []}
     paramLogistic = {label: features, 'penalty': 'l2'}
