@@ -120,8 +120,8 @@ def build_model(train_X: np.array, train_y: np.array):
 
     train_X = np.expand_dims(train_X, -1)
     train_y = np.expand_dims(train_y, -1)
-    print(train_X.shape, train_y.shape)
-    linearModel = LinearRegression_Local()
+    # print(train_X.shape, train_y.shape)
+    linearModel = LinearRegression()
     linearModel.fit(train_X, train_y)
 
     return linearModel
@@ -154,7 +154,8 @@ def MSE(y_test, pred):
         return the mean square error corresponding to your prediction
     '''
     #y_test = np.expand_dims(y_test, -1)
-    return (np.sum(y_test - pred)**2)/len(y_test)
+
+    return metrics.mean_squared_error(y_test, pred)
     ########################
     ## Your Solution Here ##
     ########################
@@ -177,9 +178,6 @@ def read_training_data(filename: str) -> tuple:
     df1 = pd.read_csv(filename)
     #print(df1)
     df2 = df1[0:10]
-    #print("df2 ",df2)
-    #df1 = df1.drop([0,1,2,3,4,5,6,7,8,9])
-    #print(df1)
 
     return (df1, df2, df1.shape)
     ########################
@@ -196,14 +194,7 @@ def data_clean(df_train: pd.DataFrame) -> tuple:
         to the missing values and store dataframe in df_train and return a tuple in the form: (s, df_train)
     '''
     s = df_train.isnull().sum()
-    # print(df_train.isnull())
-    # print( "Missing values ", df_train.isnull().sum() )
-
-    # this is not dropping properly
-
     df_train = df_train.dropna()
-    # print(df_train.isnull())
-    # print(df_train)
     return s, df_train
     ########################
     ## Your Solution Here ##
@@ -283,7 +274,7 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray):
     # print(x_train.shape)
     # print(y_train.shape)
 
-    linearModel = LinearRegression_Local()
+    linearModel = LinearRegression()
     linearModel.fit(x_train, y_train)
     return linearModel
 
@@ -301,8 +292,8 @@ def train_logistic_regression(x_train: np.ndarray, y_train: np.ndarray, max_iter
     '''
     x_train = np.expand_dims(x_train, -1)
     y_train = np.expand_dims(y_train, -1)
-    logisticalRegression = LogisticRegression()
-    logisticalRegression.fit(x_train, y_train)
+    logisticalRegression = LogisticRegression(max_iter=max_iter)
+    logisticalRegression.fit(x_train, y_train,)
     return logisticalRegression
     ########################
     ## Your Solution Here ##
@@ -315,11 +306,8 @@ def models_coefficients(linear_model, logistic_model) -> Tuple[np.ndarray, np.nd
         return the tuple consisting the coefficients for each feature for Linear Regression 
         and Logistic Regression Models respectively
     '''
-    linearCoe = pd.DataFrame(
-        linear_model.coef_, X.columns, columns=['Coefficients'])
-    logisticalCoe = pd.DataFrame(
-        logistic_model.coef_, X.columns, columns=['Coefficients'])
-    # this logic is from https://stackoverflow.com/questions/26951880/scikit-learn-linear-regression-how-to-get-coefficients-respective-features
+    linearCoe = np.array(linear_model.coef_)
+    logisticalCoe = np.array(logistic_model.coef_)
     return linearCoe, logisticalCoe
     ########################
     ## Your Solution Here ##
@@ -338,7 +326,7 @@ def linear_pred_and_area_under_curve(linear_model, x_test: np.ndarray, y_test: n
     fpr,tpr,linear_threshold = metrics.roc_score( y_test, y_pred_prob)
     predict = precision_score( y_test , y_pred_prob )
     reg_area = roc_auc_score( y_test , y_pred_prob)
-    print(predict,fpr,tpr,linear_threshold,reg_area)
+    #print(predict,fpr,tpr,linear_threshold,reg_area)
     return predict,fpr,tpr,linear_threshold,reg_area
     ########################
     ## Your Solution Here ##
@@ -400,7 +388,7 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         return features_count, auc_log, auc_linear, f1_dict dictionary
     '''
 
-    linearReg = LinearRegression_Local()
+    linearReg = LinearRegression()
     logReg = LogisticRegression()
     features = []
     f1_dict = {"log_reg": [], "linear_reg": []}
@@ -448,7 +436,7 @@ def is_features_count_changed(features_count: np.array) -> bool:
         compare number of features in each fold (features_count array's each element)
         return true if features count doesn't change in each fold. else return false
     '''
-    linearReg = LinearRegression_Local()
+    linearReg = LinearRegression()
     logReg = LogisticRegression()
     f1_dict = {"log_reg": [], "linear_reg": []}
     paramLogistic = {label: features, 'penalty': 'l2'}
@@ -481,7 +469,7 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
         The required interval is from mean-h to mean+h
         return the tuple consisting of mean, mean -h, mean+h
     '''
-    mean = scipy.stats.interval( 0.95 )
+    mean = scipy.stats.rv_continuous.interval( 0.95 )
     std = scipy.stats.sem( data )
     h = scipy.stats.rv_continuous.ppf( q = confidence , loc = data) * std
     return mean, mean-h, mean+h
@@ -499,23 +487,23 @@ if __name__ == "__main__":
     # Q1
     ################
     ################
-    # data_path_train = "LinearRegression/train.csv"
-    # data_path_test = "LinearRegression/test.csv"
-    # df_train, df_test = read_data(data_path_train), read_data(data_path_test)
-    # # print(df_train.head(n=10))
-    # # print(df_test.head(n=10))
-    # train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
-    # print(train_X.shape)
-    # print(train_y.shape)
+    data_path_train = "LinearRegression/train.csv"
+    data_path_test = "LinearRegression/test.csv"
+    df_train, df_test = read_data(data_path_train), read_data(data_path_test)
+    # print(df_train.head(n=10))
+    # print(df_test.head(n=10))
+    train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
+    print(train_X.shape)
+    print(train_y.shape)
 
-    # model = build_model(train_X, train_y)
+    model = build_model(train_X, train_y)
+    preds = pred_func(model, test_X)
+    # Make prediction with test set
 
-    # # Make prediction with test set
+    # Calculate and print the mean square error of your prediction
+    mean_square_error = MSE(test_y, preds)
 
-    # # Calculate and print the mean square error of your prediction
-    # mean_square_error = MSE(test_y, preds)
-
-    # # plot your prediction and labels, you can save the plot and add in the report
+    # plot your prediction and labels, you can save the plot and add in the report
 
     # plt.plot(test_y, label='label')
     # plt.plot(preds, label='pred')
@@ -535,8 +523,7 @@ if __name__ == "__main__":
     features, label = feature_extract(df_train_mod)
     final_features = data_preprocess(features)
     final_label = label_transform(label)
-    # print(final_features.shape)
-    # print(final_label.shape)
+
     ################
     ################
     # Q3
@@ -562,8 +549,7 @@ if __name__ == "__main__":
     linear_coef, logistic_coef = models_coefficients(
         linear_model, logistic_model)
 
-    # print(linear_coef)
-    # print(logistic_coef)
+
 
     linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
         linear_model, X_test, y_test)
