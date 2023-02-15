@@ -371,7 +371,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
-    return StratifiedKFold(features,  label, n_splits=num_of_folds, shuffle=True)
+    return StratifiedKFold(features,  label, n_splits=num_of_folds, shuffle=shuffle)
     ########################
     ## Your Solution Here ##
     ########################
