@@ -394,7 +394,7 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         return features_count, auc_log, auc_linear, f1_dict dictionary
     '''
 
-    linearReg = LinearRegression_Local()
+    linearReg = LinearRegression()
     logReg = LogisticRegression()
     features = []
     f1_dict = {"log_reg": [], "linear_reg": []}
@@ -516,12 +516,12 @@ if __name__ == "__main__":
     print(train_X.shape)
     print(train_y.shape)
 
-    model = build_model(train_X, train_y)
-    preds = pred_func(model, test_X)
-    # Make prediction with test set
+    # model = build_model(train_X, train_y)
+    # preds = pred_func(model, test_X)
+    # # Make prediction with test set
 
-    # Calculate and print the mean square error of your prediction
-    mean_square_error = MSE(test_y, preds)
+    # # Calculate and print the mean square error of your prediction
+    # mean_square_error = MSE(test_y, preds)
 
     # plot your prediction and labels, you can save the plot and add in the report
 
@@ -571,8 +571,8 @@ if __name__ == "__main__":
 
 
 
-    # linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
-    #     linear_model, X_test, y_test)
+    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+        linear_model, X_test, y_test)
 
     log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
@@ -582,8 +582,8 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
-    linear_optimal_threshold, log_optimal_threshold = optimal_thresholds(
-        linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
+    # linear_optimal_threshold, log_optimal_threshold = optimal_thresholds(
+    #     linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
 
     skf = stratified_k_fold_cross_validation(
         num_of_folds, final_features, final_label)
