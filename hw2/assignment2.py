@@ -426,6 +426,7 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         f1_dict["linear_reg"].append(
             linearReg.score(features[X_train], label[X_test]))
 
+
     # find auc log and roc_auc score
 
     # logreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
