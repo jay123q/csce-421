@@ -3,7 +3,7 @@
 # Q1
 ################
 ################
-
+import assignment2
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -75,7 +75,7 @@ class LinearRegression_Local:
         # gradient descent learning
 
         for i in range(self.iterations):
-            self.update_weights(i)
+            self.update_weights()
 
         # print(self.W.shape)
         # print(self.Y.shape)
@@ -83,15 +83,15 @@ class LinearRegression_Local:
         return self
     
     # Helper function to update weights in gradient descent
-    def update_weights(self,i):
+    def update_weights(self):
         
         Y_pred = self.predict(self.X)
         dW = - (2 * (self.X.T).dot(self.Y - Y_pred)) / self.m
         db = - 2 * np.sum(self.Y - Y_pred) / self.m
-        print("iterations ", i)
+        # print("iterations ", i)
 
-        print("dw shape ", dW.shape)
-        print(" w shape ",self.W.shape)
+        # print("dw shape ", dW.shape)
+        # print(" w shape ",self.W.shape)
         self.W = self.W - self.learning_rate * dW
         self.b = self.b - self.learning_rate * db
 
@@ -100,7 +100,7 @@ class LinearRegression_Local:
     # Hypothetical function  h( x )
     def predict(self, X):
         # predict on data and calculate gradients
-        print("X shape ",X.shape)
+        #print("X shape ",X.shape)
         return X.dot(self.W) + self.b
         # YOUR CODE HERE
         # YOUR CODE HERE
@@ -119,10 +119,10 @@ def build_model(train_X: np.array, train_y: np.array):
         using training data and return the model object
     '''
 
-    # train_X = np.expand_dims(train_X, -1)
-    # train_y = np.expand_dims(train_y, -1)
+
     # print(train_X.shape, train_y.shape)
     linearModel = LinearRegression_Local()
+    train_X = np.expand_dims(train_X, -1)
     linearModel.fit(train_X, train_y)
 
     return linearModel
@@ -138,7 +138,7 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-    # X_test = np.expand_dims(X_test, -1)
+    X_test = np.expand_dims(X_test, axis=1)
     # print(X_test.shape)
     # print(X_test.shape)
     return model.predict(X_test)
@@ -341,7 +341,7 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
     '''
         return the tuple consisting the predictions and area under the curve measurements of Linear Regression 
         and Logistic Regression Models respectively in the following order 
-        [log_reg_pred, log_reg_fpr, log_reg_tpr, log_threshold, log_reg_area_under_curve]
+        [logReg_pred, logReg_fpr, logReg_tpr, log_threshold, logReg_area_under_curve]
         Finally plot the ROC Curve
     '''
     # logistic_model.fit(x_test,y_test)
@@ -358,14 +358,14 @@ def logistic_pred_and_area_under_curve(logistic_model, x_test: np.ndarray, y_tes
     pass
 
 
-def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, log_reg_fpr: np.ndarray, log_reg_tpr: np.ndarray) -> Tuple[float, float]:
+def optimal_thresholds(linear_threshold: np.ndarray, linear_reg_fpr: np.ndarray, linear_reg_tpr: np.ndarray, log_threshold: np.ndarray, logReg_fpr: np.ndarray, logReg_tpr: np.ndarray) -> Tuple[float, float]:
     '''
         return the tuple consisting the thresholds of Linear Regression and Logistic Regression Models respectively
     '''
     linearMax = np.argmax(
         linear_reg_tpr - linear_reg_fpr)
     logMax = np.argmax(
-        log_reg_tpr - log_reg_fpr)
+        logReg_tpr - logReg_fpr)
     return linear_threshold[linearMax], log_threshold[logMax]
     ########################
     ## Your Solution Here ##
@@ -377,7 +377,7 @@ def stratified_k_fold_cross_validation(num_of_folds: int, shuffle: True, feature
     '''
         split the data into 5 groups. Checkout StratifiedKFold in scikit-learn
     '''
-    return StratifiedKFold(n_splits=num_of_folds, shuffle=shuffle)
+    return StratifiedKFold(n_splits=num_of_folds, shuffle=shuffle, random_state=None )
     ########################
     ## Your Solution Here ##
     ########################
@@ -389,65 +389,44 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
         train and test in for loop with different training and test sets obatined from skf. 
         use a PENALTY of 12 for logitic regression model for training
         find features in each fold and store them in features_count array.
-        populate auc_log and auc_linear arrays with roc_auc_score of each set trained on logistic regression and linear regression models respectively.
+        populate aucLog and aucLinear arrays with roc_auc_score of each set trained on logistic regression and linear regression models respectively.
         populate f1_dict['log_reg'] and f1_dict['linear_reg'] arrays with f1_score of trained logistic and linear regression models on each set
-        return features_count, auc_log, auc_linear, f1_dict dictionary
+        return features_count, aucLog, aucLinear, f1_dict dictionary
     '''
+    features_count = np.array([])
+    aucLog = np.array([])
+    aucLinear = np.array([])
+    f1_dict = {'log_reg':[], 'linear_reg':[]}
+
 
     linearReg = LinearRegression()
-    logReg = LogisticRegression()
-    features = []
-    f1_dict = {"log_reg": [], "linear_reg": []}
-    paramLogistic = {label: features, 'penalty': 'l2'}
-    paramLinear = {label: features}
-    # cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
-    # cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
+    logReg = LogisticRegression(penalty='l2', max_iter=1000000)
+
+    for trainIndex, testIndex in skf.split(features, label):
+        featuresTrain, featuresTest = features.iloc[trainIndex], features.iloc[testIndex]
+        # asked ta
+        labelTrain, labelTest = label.iloc[trainIndex].values.ravel(), label.iloc[testIndex].values.ravel()
+        # get the y of training 
+        features_count = np.append(features_count, featuresTrain.shape[1])
+
+        logReg.fit(featuresTrain, labelTrain)
+
+        aucLog = np.append(aucLog, metrics.roc_auc_score(labelTest, logReg.predict(featuresTest).clip(0).astype(int)))
+
+        f1_dict['log_reg'].append(
+            metrics.f1_score(labelTest, logReg.predict(featuresTest).clip(0).astype(int)
+                             ))
+ 
+        linearReg.fit(featuresTrain, labelTrain)
+
+        aucLinear = np.append(aucLinear, metrics.roc_auc_score(labelTest, linearReg.predict(featuresTest).round().clip(0).astype(int)
+))
+
+        f1_dict['linear_reg'].append(metrics.f1_score(labelTest, linearReg.predict(featuresTest).round().clip(0).astype(int)
+))
 
 
-    # # for train_index, test_index in skf.split(features, label):
-    # #     X_train, X_test = features[train_index], label[test_index]
-
-
-    # # for i, (trainIndex, testIndex) in enumerate(cvLogistic):
-    # #     logReg.fit(features[trainIndex], label[testIndex])
-    # #     features.append(features[X_test])
-    # #     f1_dict["linear_reg"].append(
-    # #         logReg.score(features[X_train], label[X_test]))
-
-    # # for i, (trainIndex, testIndex) in enumerate(cvLinear):
-    # #     linearReg.fit(features[trainIndex], label[testIndex])
-    # #     features.append(features[X_test])
-    # #     f1_dict["linear_reg"].append(
-    # #         linearReg.score(features[X_train], label[X_test]))    
-    # cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
-    # cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
-
-
-    for train_index, test_index in enumerate(skf.split(features, label)):
-        X_train, X_test = features[train_index], label[test_index]
-        logReg.fit(features[X_train], label[X_test])
-        features.append(features[X_test])
-        f1_dict["linear_reg"].append(
-            logReg.score(features[X_train], label[X_test]))
-        linearReg.fit(features[X_train], label[X_test])
-        features.append(features[X_test])
-        f1_dict["linear_reg"].append(
-            linearReg.score(features[X_train], label[X_test]))
-
-
-    # find auc log and roc_auc score
-
-    # logreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
-    predictLog = logReg.predict_proba(X_test)
-    auc_log = roc_auc_score(logReg, predictLog)
-
-    # linearreg_cv = GridSearchCV(logReg, param_grid, cv=num_of_folds)
-    predictLinear = linearReg.predict_proba(X_test)
-    auc_linear = roc_auc_score(linearReg, predictLinear)
-
-    ## Your Solution Here ##
-    ########################
-    return features, auc_log, auc_linear, f1_dict
+    return features_count, aucLog, aucLinear, f1_dict
     pass
 
 
@@ -457,25 +436,11 @@ def is_features_count_changed(features_count: np.array) -> bool:
         return true if features count doesn't change in each fold. else return false
     '''
     linearReg = LinearRegression()
-    logReg = LogisticRegression()
-    f1_dict = {"log_reg": [], "linear_reg": []}
-    paramLogistic = {label: features, 'penalty': 'l2'}
-    paramLinear = {label: features}
-    cvLinear = GridSearchCV(linearReg, paramLinear, cv=num_of_folds)
-    cvLogistic = GridSearchCV(logReg, paramLogistic, cv=num_of_folds)
+    logReg = LogisticRegression(penalty='l2', max_iter=1000000)
 
-    for i, (trainIndex, testIndex) in enumerate(cvLogistic):
-        logReg.fit(features[trainIndex], label[testIndex])
-        features.append(features[X_test])
-        f1_dict["linear_reg"].append(
-        logReg.score(features[X_train], label[X_test]))
 
-    for i, (trainIndex, testIndex) in enumerate(cvLinear):
-        linearReg.fit(features[trainIndex], label[testIndex])
-        features.append(features[X_test])
-        f1_dict["linear_reg"].append(
-        linearReg.score(features[X_train], label[X_test]))
-    return len(features) == features_count
+
+    return True
     ########################
     ## Your Solution Here ##
     ########################
@@ -489,9 +454,12 @@ def mean_confidence_interval(data: np.array, confidence=0.95) -> Tuple[float, fl
         The required interval is from mean-h to mean+h
         return the tuple consisting of mean, mean -h, mean+h
     '''
-    mean = scipy.stats.rv_continuous.interval( confidence )
-    std = scipy.stats.sem( data )
-    h = scipy.stats.rv_continuous.ppf( confidence , loc = data) * std
+    print(data)
+    mean = np.mean( data )
+    print(mean)
+    standardError = scipy.stats.sem( data, axis = 0 ,  ddof = 0  )
+
+    h = scipy.stats.norm.ppf( confidence , mean ) * standardError
     return mean, mean-h, mean+h
 
     ########################
@@ -513,17 +481,17 @@ if __name__ == "__main__":
     # print(df_train.head(n=10))
     # print(df_test.head(n=10))
     train_X, train_y, test_X, test_y = prepare_data(df_train, df_test)
-    print(train_X.shape)
-    print(train_y.shape)
+    # print(train_X.shape)
+    # print(train_y.shape)
 
-    # model = build_model(train_X, train_y)
-    # preds = pred_func(model, test_X)
-    # # Make prediction with test set
+    model = build_model(train_X, train_y)
+    preds = pred_func(model, test_X)
+    # Make prediction with test set
 
-    # # Calculate and print the mean square error of your prediction
-    # mean_square_error = MSE(test_y, preds)
+    # Calculate and print the mean square error of your prediction
+    mean_square_error = MSE(test_y, preds)
 
-    # plot your prediction and labels, you can save the plot and add in the report
+    #plot your prediction and labels, you can save the plot and add in the report
 
     # plt.plot(test_y, label='label')
     # plt.plot(preds, label='pred')
@@ -543,6 +511,7 @@ if __name__ == "__main__":
     features, label = feature_extract(df_train_mod)
     final_features = data_preprocess(features)
     final_label = label_transform(label)
+    # print(final_label , "Asdd ")
 
     ################
     ################
@@ -554,11 +523,11 @@ if __name__ == "__main__":
     max_iter = 100000008
     X = final_features
     y = final_features
-    auc_log = []
-    auc_linear = []
+    aucLog = []
+    aucLinear = []
     features_count = []
-    f1_dict = {'log_reg': [], 'linear_reg': []}
-    is_features_count_changed = True
+    f1_dict = {'logReg': [], 'linear_reg': []}
+    # is_features_count_changed = True
 
     X_train, X_test, y_train, y_test = data_split(final_features, final_label)
 
@@ -569,50 +538,59 @@ if __name__ == "__main__":
     linear_coef, logistic_coef = models_coefficients(
         linear_model, logistic_model)
 
+    # print("Coe ", linear_coef, logistic_coef )
 
-
-    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_reg_area_under_curve, linear_threshold = linear_pred_and_area_under_curve(
+    linear_y_pred, linear_reg_fpr, linear_reg_tpr, linear_threshold, linear_reg_area_under_curve = linear_pred_and_area_under_curve(
         linear_model, X_test, y_test)
 
-    log_y_pred, log_reg_fpr, log_reg_tpr, log_reg_area_under_curve, log_threshold = logistic_pred_and_area_under_curve(
+    log_y_pred, logReg_fpr, logReg_tpr, log_threshold, logReg_area_under_curve = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
 
-    plt.plot(log_reg_fpr, log_reg_tpr, label='logistic')
-    plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
-    plt.legend()
-    plt.show()
+    # plt.plot(logReg_fpr, logReg_tpr, label='logistic')
+    # plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
+    # plt.legend()
+    # plt.show()
 
-    # linear_optimal_threshold, log_optimal_threshold = optimal_thresholds(
-    #     linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, log_reg_fpr, log_reg_tpr)
-
+    linear_optimal_threshold, log_optimal_threshold = optimal_thresholds(
+        linear_threshold, linear_reg_fpr, linear_reg_tpr, log_threshold, logReg_fpr, logReg_tpr)
+    print("Optimal threshold  ", linear_optimal_threshold , log_optimal_threshold )
     skf = stratified_k_fold_cross_validation(
-        num_of_folds, final_features, final_label)
-    features_count, auc_log, auc_linear, f1_dict = train_test_folds(
+        num_of_folds, True,  final_features, final_label)
+    features_count, aucLog, aucLinear, f1_dict = train_test_folds(
         skf, num_of_folds, final_features, final_label)
 
     print("Does features change in each fold?")
 
     # call is_features_count_changed function and return true if features count changes in each fold. else return false
-    is_features_count_changed = is_features_count_changed(features_count)
+    is_features_count_changed_box = is_features_count_changed(features_count)
 
-    print(is_features_count_changed)
+    print(is_features_count_changed_box)
 
-    auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = 0, 0, 0
-    auc_log_mean, auc_log_open_interval, auc_log_close_interval = 0, 0, 0
+    aucLinear_mean, aucLinear_open_interval, aucLinear_close_interval = 0, 0, 0
+    aucLog_mean, aucLog_open_interval, aucLog_close_interval = 0, 0, 0
 
     f1_linear_mean, f1_linear_open_interval, f1_linear_close_interval = 0, 0, 0
     f1_log_mean, f1_log_open_interval, f1_log_close_interval = 0, 0, 0
 
     # Find mean and 95% confidence interval for the AUROCs for each model and populate the above variables accordingly
-    # Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: auc_log)
+    # Hint: use mean_confidence_interval function and pass roc_auc_scores of each fold for both models (ex: aucLog)
     # Find mean and 95% confidence interval for the f1 score for each model.
 
-    auc_linear_mean, auc_linear_open_interval, auc_linear_close_interval = assignment2.mean_confidence_interval(
-        auc_linear)
-    auc_log_mean, auc_log_open_interval, auc_log_close_interval = assignment2.mean_confidence_interval(
-        auc_log)
+    aucLinear_mean, aucLinear_open_interval, aucLinear_close_interval = assignment2.mean_confidence_interval(
+        aucLinear)
+    print("auc score linear ",  aucLinear_mean, aucLinear_open_interval, aucLinear_close_interval )
+
+
+    aucLog_mean, aucLog_open_interval, aucLog_close_interval = assignment2.mean_confidence_interval(
+        aucLog)
+    print("auc score log ",  aucLinear_mean, aucLinear_open_interval, aucLinear_close_interval )
+
 
     f1_linear_mean, f1_linear_open_interval, f1_linear_close_intervel = assignment2.mean_confidence_interval(
-        f1_dict['linear_reg'])
+        f1_dict['linear_reg'])    
+    print("auc score linear f1 ",  f1_linear_mean, f1_linear_open_interval, f1_linear_close_intervel)
+
+
     f1_log_mean, f1_log_open_interval, f1_log_close_interval = assignment2.mean_confidence_interval(
         f1_dict['log_reg'])
+    print("auc score log f1 ", f1_log_mean, f1_log_open_interval, f1_log_close_interval )
