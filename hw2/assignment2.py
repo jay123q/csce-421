@@ -122,7 +122,7 @@ def build_model(train_X: np.array, train_y: np.array):
 
     # print(train_X.shape, train_y.shape)
     linearModel = LinearRegression_Local()
-    train_X = np.expand_dims(train_X, -1)
+    # train_X = np.expand_dims(train_X, -1)
     linearModel.fit(train_X, train_y)
 
     return linearModel
@@ -138,7 +138,7 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-    X_test = np.expand_dims(X_test, axis=1)
+    # X_test = np.expand_dims(X_test, axis=1)
     # print(X_test.shape)
     # print(X_test.shape)
     return model.predict(X_test)
