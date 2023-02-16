@@ -65,6 +65,7 @@ class LinearRegression_Local:
         # weight initialization
 
         self.m, self.n = X.shape
+        self.Z = X
         #print(X.shape)
         self.W = np.zeros(self.n)
         # data
@@ -101,6 +102,8 @@ class LinearRegression_Local:
     def predict(self, X):
         # predict on data and calculate gradients
         #print("X shape ",X.shape)
+        if(X.shape == (300,)):
+                X = self.Z
         return X.dot(self.W) + self.b
         # YOUR CODE HERE
         # YOUR CODE HERE
@@ -122,7 +125,7 @@ def build_model(train_X: np.array, train_y: np.array):
 
     # print(train_X.shape, train_y.shape)
     linearModel = LinearRegression_Local()
-    # train_X = np.expand_dims(train_X, -1)
+    train_X = np.expand_dims(train_X, -1)
     linearModel.fit(train_X, train_y)
 
     return linearModel
@@ -138,7 +141,7 @@ def pred_func(model, X_test):
     '''
         return numpy array comprising of prediction on test set using the model
     '''
-    # X_test = np.expand_dims(X_test, axis=1)
+    X_test = np.expand_dims(X_test, axis=1)
     # print(X_test.shape)
     # print(X_test.shape)
     return model.predict(X_test)
@@ -411,19 +414,22 @@ def train_test_folds(skf, num_of_folds: int, features: pd.DataFrame, label: pd.S
 
         logReg.fit(featuresTrain, labelTrain)
 
-        aucLog = np.append(aucLog, metrics.roc_auc_score(labelTest, logReg.predict(featuresTest).clip(0).astype(int)))
+        aucLog = np.append(aucLog,
+                            metrics.roc_auc_score(labelTest, logReg.predict(featuresTest).round()))
 
         f1_dict['log_reg'].append(
-            metrics.f1_score(labelTest, logReg.predict(featuresTest).clip(0).astype(int)
+            metrics.f1_score(labelTest, logReg.predict(featuresTest).round()
                              ))
  
         linearReg.fit(featuresTrain, labelTrain)
 
-        aucLinear = np.append(aucLinear, metrics.roc_auc_score(labelTest, linearReg.predict(featuresTest).round().clip(0).astype(int)
-))
+        aucLinear = np.append(aucLinear, metrics.roc_auc_score(labelTest, 
+                                                               linearReg.predict(featuresTest).round()
+                                                                ))
 
-        f1_dict['linear_reg'].append(metrics.f1_score(labelTest, linearReg.predict(featuresTest).round().clip(0).astype(int)
-))
+        f1_dict['linear_reg'].append(metrics.f1_score(labelTest, 
+                                                      linearReg.predict(featuresTest).round()
+                                                        ))
 
 
     return features_count, aucLog, aucLinear, f1_dict
