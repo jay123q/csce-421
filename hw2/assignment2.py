@@ -551,7 +551,8 @@ if __name__ == "__main__":
 
     log_y_pred, logReg_fpr, logReg_tpr, log_threshold, logReg_area_under_curve = logistic_pred_and_area_under_curve(
         logistic_model, X_test, y_test)
-
+    print(" linear roc: ", linear_reg_area_under_curve)
+    print(" log roc: ", logReg_area_under_curve)
     # plt.plot(logReg_fpr, logReg_tpr, label='logistic')
     # plt.plot(linear_reg_fpr, linear_reg_tpr, label='linear')
     # plt.legend()
