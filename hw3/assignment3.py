@@ -36,16 +36,18 @@ def data_preprocess(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     Return the final features and final label in same order
     You may use the same code you submiited for problem 2 of HW2
     """
+    df = df.dropna()
 
     # df = df.dropna()
-    labelColumn = df['Player']
+    labelColumn = df[:'NewLeague']
     
-    df = df.drop(columns="Player")
+    df = df.drop(["NewLeague", "Player"], axis='columns')
     nonnumericalColumn = df.select_dtypes(exclude=['int64', 'float64'])
     wholeColumn = df.select_dtypes(include=['int64', 'float64'])
     dummy = pd.get_dummies(nonnumericalColumn)
     wholeFeature = pd.concat([dummy, wholeColumn], axis = 1)
-    return wholeFeature,labelColumn
+
+    return wholeFeature,labelColumn.replace({'A':0,'N':1})
     #######################
     ## Your Solution Here ##
     ########################
