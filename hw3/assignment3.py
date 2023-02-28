@@ -39,7 +39,7 @@ def data_preprocess(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     df = df.dropna()
 
     # df = df.dropna()
-    labelColumn = df[:'NewLeague']
+    labelColumn = df.loc[:,'NewLeague']
     
     df = df.drop(["NewLeague", "Player"], axis='columns')
     nonnumericalColumn = df.select_dtypes(exclude=['int64', 'float64'])
