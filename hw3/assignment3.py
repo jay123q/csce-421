@@ -39,15 +39,15 @@ def data_preprocess(df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
     df = df.dropna()
 
     # df = df.dropna()
-    labelColumn = df[:'NewLeague']
-    
+    labelColumn = df.loc[:, 'NewLeague']
+
     df = df.drop(["NewLeague", "Player"], axis='columns')
     nonnumericalColumn = df.select_dtypes(exclude=['int64', 'float64'])
     wholeColumn = df.select_dtypes(include=['int64', 'float64'])
     dummy = pd.get_dummies(nonnumericalColumn)
-    wholeFeature = pd.concat([dummy, wholeColumn], axis = 1)
+    wholeFeature = pd.concat([dummy, wholeColumn], axis=1)
 
-    return wholeFeature,labelColumn.replace({'A':0,'N':1})
+    return wholeFeature, labelColumn.replace({'A': 0, 'N': 1})
     #######################
     ## Your Solution Here ##
     ########################
@@ -62,11 +62,19 @@ def data_split(
     Split 80% of data as a training set and the remaining 20% of the data as testing set
     return training and testing sets in the following order: X_train, X_test, y_train, y_test
     """
-    return train_test_split(features, label, test_size=0.2)
+    return tuple(train_test_split(features, label, test_size=test_size))
+
     ########################
     ## Your Solution Here ##
     ########################
     pass
+
+
+def train_predict(object, x_train, y_train, x_test):
+
+    object.fit(x_train, y_train)
+    yPred = object.predict(x_test)
+    return yPred
 
 
 @typechecked
@@ -78,27 +86,31 @@ def train_ridge_regression(
     max_iter: int = int(1e8),
 ) -> Dict[float, float]:
     """
-    Instantiate an object of Ridge Regression, train the model object using training data for the given `n'
+    Instantiate an object of Lasso Model, train the object using training data for the given `n'
     iterations and in each iteration train the model for all lambda_vals as alpha and store roc scores of all lambda
     values in all iterations in aucs dictionary
-
     Rest of the provided handles the return part
     """
     n = int(1e3)
-    aucs = {"ridge": []}
+    aucs = {"Ridge": {1e-3: [], 1e-2: [], 1e-1: [],
+                      1: [], 1e1: [], 1e2: [], 1e3: []}}
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
-    ########################
-    ## Your Solution Here ##
-    ########################
+    for i in range(n):
+        for j in range(len(lambda_vals)):
+            ridgeReg = Ridge(alpha=lambda_vals[j], max_iter=max_iter)
+            yPred = train_predict(ridgeReg, x_train, y_train, x_test)
+            yPredProb = 1 / (((1+lambda_vals[j]) * (1 - yPred)) / (1 + yPred))
+            aucs["Ridge"][lambda_vals[j]].append(
+                roc_auc_score(y_test, yPredProb))
 
-    print("ridge mean AUCs:")
-    ridge_aucs = pd.DataFrame(aucs["ridge"])
+    print("Ridge mean AUCs:")
     ridge_mean_auc = {}
-    ridge_aucs = pd.DataFrame(aucs["ridge"])
-    for lambda_val, ridge_auc in zip(lambda_vals, ridge_aucs.mean()):
-        ridge_mean_auc[lambda_val] = ridge_auc
-        print("lambda:", lambda_val, "AUC:", "%.4f" % ridge_auc)
+    lasso_aucs = pd.DataFrame(
+        aucs["Ridge"])
+    for lambda_val, lasso_auc in zip(lambda_vals, lasso_aucs.mean()):
+        ridge_mean_auc[lambda_val] = lasso_auc
+        print("lambda:", lambda_val, "AUC:", "%.4f" % lasso_auc)
     return ridge_mean_auc
 
 
@@ -118,12 +130,20 @@ def train_lasso(
     Rest of the provided handles the return part
     """
     n = int(1e3)
-    aucs = {"lasso": []}
+    aucs = {"lasso": {1e-3: [], 1e-2: [], 1e-1: [],
+                      1: [], 1e1: [], 1e2: [], 1e3: []}}
     lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
 
     ########################
     ## Your Solution Here ##
     ########################
+    for i in range(n):
+        for j in range(len(lambda_vals)):
+            lassReg = Lasso(alpha=lambda_vals[j], max_iter=max_iter)
+            yPred = train_predict(lassReg, x_train, y_train, x_test)
+            yPredProb = 1 / (((1+lambda_vals[j]) * (1 - yPred)) / (1 + yPred))
+            aucs["lasso"][lambda_vals[j]].append(
+                roc_auc_score(y_test, yPredProb))
 
     print("lasso mean AUCs:")
     lasso_mean_auc = {}
@@ -145,6 +165,9 @@ def ridge_coefficients(
     return the tuple consisting of trained Ridge model with alpha as optimal_alpha and the coefficients
     of the model
     """
+    ridgeReg = Ridge(alpha=optimal_alpha, max_iter=max_iter)
+    ridgeReg.fit(x_train, y_train)
+    return ridgeReg, ridgeReg.coef_
     ########################
     ## Your Solution Here ##
     ########################
@@ -165,6 +188,9 @@ def lasso_coefficients(
     ########################
     ## Your Solution Here ##
     ########################
+    lassoReg = Lasso(alpha=optimal_alpha, max_iter=max_iter)
+    lassoReg.fit(x_train, y_train)
+    return lassoReg, lassoReg.coef_
     pass
 
 
@@ -177,6 +203,9 @@ def ridge_area_under_curve(
     i.e., model tarined with optimal_aplha
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
+
+    return roc_auc_score(y_test, model_R.predict(x_test))
+
     ########################
     ## Your Solution Here ##
     ########################
@@ -192,6 +221,8 @@ def lasso_area_under_curve(
     i.e., model tarined with optimal_aplha
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
+
+    return roc_auc_score(y_test, model_L.predict(x_test))
     ########################
     ## Your Solution Here ##
     ########################
@@ -215,7 +246,8 @@ class Node:
 
         self.left = left
         self.right = right
-        self.split_val = split_val  # value (of a variable) on which to split. For leaf nodes this is label/output value
+        # value (of a variable) on which to split. For leaf nodes this is label/output value
+        self.split_val = split_val
         self.data = data  # data can be anything! we recommend dictionary with all variables you need
 
 
@@ -226,15 +258,39 @@ class TreeRegressor:
             data  # last element of each row in data is the target variable
         )
         self.max_depth = max_depth  # maximum depth
+        self.root = root
+        self.best_split = None
+        self._nleaves = None
+
+    # def AddNode(self, pointer = self.root, node: Node ):
+    #     # using the stump formula
+    #     if (node.data <= pointer.data):
+    #         # check left
+    #         if (self.left == None):
+    #             # if its none add
+    #             self.left = pointer
+    #         else:
+    #             self = self.left
+    #             TreeRegressor.AddNode(pointer, node)
+    #     else:
+    #         if (self.right == None):
+    #             self.right = pointer
+    #         else:
+    #              self = self.right
+    #              TreeRegressor.AddNode(node)
+
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
-        ## YOUR CODE HERE
+        # YOUR CODE HERE
 
     @typechecked
     def build_tree(self) -> Node:
         """
         Build the tree
         """
+        self.max_depth = 1
+        self.root = Node()
+        # root.split_value = TreeRegressor.mean_squared_error()
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -252,13 +308,30 @@ class TreeRegressor:
         ######################
         ### YOUR CODE HERE ###
         ######################
+        return np.square(left_split - right_split).sum() + np.square(right_split - left_split).sum()
         pass
 
     @typechecked
     def split(self, node: Node, depth: int) -> None:
         """
         Do the split operation recursively
+
         """
+        if(depth == 1 ):
+            self.root = node
+            self.root.data = self.root.data.sort()
+            self.root.split_val = self.root.data[(len(self.root.data))/2]
+        else:
+            node.left = TreeRegressor.get_best_split( self.root.data[ 0 : self.root.split_val ] )
+            node.right = TreeRegressor.get_best_split( self.root.data[ self.root.split_val : len(self.root.data) ] )
+            depth +=1
+        # if( self.root == None ):
+        #     self.root = node
+        #     self.root.data = self.root.data.sort()
+        #     self.root.split_val = self.root.data[(len(self.root.data))/2]
+        
+        
+
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -269,6 +342,10 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
+        place = len(data)/2
+        node = Node( split_val= data[place] )
+        node.data = data
+        return node
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -314,7 +391,7 @@ def predict(
 
 class TreeClassifier(TreeRegressor):
     def build_tree(self):
-        ## Note: You can remove this if you want to use build tree from Tree Regressor
+        # Note: You can remove this if you want to use build tree from Tree Regressor
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -407,7 +484,8 @@ if __name__ == "__main__":
     plt.show()
 
     # SUB Q2
-    csvname = "new_circle_data.csv"  # Place the CSV file in the same directory as this notebook
+    # Place the CSV file in the same directory as this notebook
+    csvname = "new_circle_data.csv"
     data_class = np.loadtxt(csvname, delimiter=",")
     data_class = np.array([[x1, x2, y] for x1, x2, y in zip(*data_class)])
     plt.figure()
