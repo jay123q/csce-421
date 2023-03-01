@@ -258,7 +258,7 @@ class TreeRegressor:
             data  # last element of each row in data is the target variable
         )
         self.max_depth = max_depth  # maximum depth
-        self.root = root
+        self.root = None
         self.best_split = None
         self._nleaves = None
 
@@ -312,7 +312,7 @@ class TreeRegressor:
         pass
 
     @typechecked
-    def split(self, node: Node, depth: int) -> None:
+    def split(self, node: Node, depth: int , counter : int) -> None:
         """
         Do the split operation recursively
 
@@ -320,15 +320,25 @@ class TreeRegressor:
         # create a value for a decision tree
 
         # this is going to count down
-        for i in depth:
-            if (depth == 1):
+        counter = 1
+        if (counter == 1):
                 self.root = TreeRegressor.get_best_split(node.data.sort())
                 head = self.root
-            else:
+                counter += 1
                 headLeft = head.left
                 headRight = head.right
-                headLeft = TreeRegressor.get_best_split(headLeft.data.sort())
-                headRight = TreeRegressor.get_best_split(headRight.data.sort())
+                TreeRegressor.split( headLeft , depth , counter )
+                TreeRegressor.split( headRight , depth , counter  )
+        elif( counter == depth ):
+            return 
+        else:
+                counter += 1
+                nodeLeft = node.left
+                nodeRight = node.right
+                headLeft = TreeRegressor.get_best_split(nodeLeft.data.sort())
+                headRight = TreeRegressor.get_best_split(nodeRight.data.sort())
+                TreeRegressor.split( headLeft , depth , counter  )
+                TreeRegressor.split( headRight , depth , counter )
 
         # if( self.root == None ):
         #     self.root = node
@@ -346,9 +356,10 @@ class TreeRegressor:
         Select the best split point for a dataset AND create a Node
         """
         place = len(data)/2
-        node = Node( split_val = data [ place ] )
-        node.left.data = data[ 0 : data[place] ]
-        node.right.data = data[ data[place]: ]
+        node = Node(split_val = data [ place ] )
+        node.split_val = data[place ]
+        node.left.data = data[0 : data[place] ]
+        node.right.data = data[data[place]: ]
 
         return node
         ######################
