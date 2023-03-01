@@ -243,12 +243,17 @@ class Node:
 
         if right is not None:
             assert isinstance(right, Node)
-
+        balanceIndex = None
+        balanceValue = None
+        balanceGroups = None
         self.left = left
         self.right = right
         # value (of a variable) on which to split. For leaf nodes this is label/output value
         self.split_val = split_val
-        self.data = data  # data can be anything! we recommend dictionary with all variables you need
+        self.balanceIndex = balanceIndex
+        self.balanceValue = balanceValue
+        self.balanceGroups = balanceGroups
+        self.data = {'left':left,'right':right,'index':balanceIndex, 'value':balanceValue, 'groups':balanceGroups}  # data can be anything! we recommend dictionary with all variables you need
 
 
 class TreeRegressor:
@@ -261,7 +266,7 @@ class TreeRegressor:
         self.root = None
         self.best_split = None
         self._nleaves = None
-
+    
     # def AddNode(self, pointer = self.root, node: Node ):
     #     # using the stump formula
     #     if (node.data <= pointer.data):
@@ -282,14 +287,20 @@ class TreeRegressor:
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         # YOUR CODE HERE
-
+        self.bestSplit = self.get_best_split(data)
+    def to_terminal(group):
+        outcomes = [row[-1] for row in group]
+        return max(set(outcomes), key=outcomes.count)
     @typechecked
     def build_tree(self) -> Node:
         """
         Build the tree
         """
-        self.max_depth = 1
-        self.root = Node()
+
+        root = self.get_best_split( )
+        min_size = 0
+        self.split(root, self.max_depth, min_size, 1)
+        return root
         # root.split_value = TreeRegressor.mean_squared_error()
         ######################
         ### YOUR CODE HERE ###
@@ -317,28 +328,29 @@ class TreeRegressor:
         Do the split operation recursively
 
         """
+        print("aaaa")
         # create a value for a decision tree
 
         # this is going to count down
-        counter = 1
-        if (counter == 1):
-                self.root = TreeRegressor.get_best_split(node.data.sort())
-                head = self.root
-                counter += 1
-                headLeft = head.left
-                headRight = head.right
-                TreeRegressor.split( headLeft , depth , counter )
-                TreeRegressor.split( headRight , depth , counter  )
-        elif( counter == depth ):
-            return 
-        else:
-                counter += 1
-                nodeLeft = node.left
-                nodeRight = node.right
-                headLeft = TreeRegressor.get_best_split(nodeLeft.data.sort())
-                headRight = TreeRegressor.get_best_split(nodeRight.data.sort())
-                TreeRegressor.split( headLeft , depth , counter  )
-                TreeRegressor.split( headRight , depth , counter )
+        # counter = 1
+        # if (counter == 1):
+        #         self.root = TreeRegressor.get_best_split(node.data.sort())
+        #         head = self.root
+        #         counter += 1
+        #         headLeft = head.left
+        #         headRight = head.right
+        #         TreeRegressor.split( headLeft , depth , counter )
+        #         TreeRegressor.split( headRight , depth , counter  )
+        # elif( counter == depth ):
+        #     return 
+        # else:
+        #         counter += 1
+        #         nodeLeft = node.left
+        #         nodeRight = node.right
+        #         headLeft = TreeRegressor.get_best_split(nodeLeft.data.sort())
+        #         headRight = TreeRegressor.get_best_split(nodeRight.data.sort())
+        #         TreeRegressor.split( headLeft , depth , counter  )
+        #         TreeRegressor.split( headRight , depth , counter )
 
         # if( self.root == None ):
         #     self.root = node
@@ -351,17 +363,22 @@ class TreeRegressor:
         pass
 
     @typechecked
-    def get_best_split(self, data: np.ndarray) -> Node:
+    def get_best_split(self, data : np.ndarray) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
-        place = len(data)/2
-        node = Node(split_val = data [ place ] )
-        node.split_val = data[place ]
-        node.left.data = data[0 : data[place] ]
-        node.right.data = data[data[place]: ]
 
-        return node
+        classValues = list(set(row[-1] for row in data))
+        balanceIndex, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
+        #
+        for index in range(len(data)-1):
+            for row in data:
+                groups = TreeRegressor.one_step_split(index, row[index], data)
+                mean = TreeRegressor.mean_squared_error( groups[0] , groups[1] )
+                if mean < balanceScore :
+                    balanceIndex, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
+
+        return {'index':balanceIndex, 'value':balanceValue, 'groups':balanceGroup}
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -377,6 +394,14 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
+        left, right = [] , []
+        for row in data:
+            if row[index] < value:
+                left.append(row)
+            else:
+                right.append(row)
+        return left, right
+
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -389,6 +414,7 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
+    return (node.split_val > row[len(row)])
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -443,48 +469,50 @@ class TreeClassifier(TreeRegressor):
 
 if __name__ == "__main__":
     # Question 1
-    filename = "Hitters.csv"  # Provide the path of the dataset
-    df = read_data(filename)
-    lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
-    max_iter = 1e8
-    final_features, final_label = data_preprocess(df)
-    x_train, x_test, y_train, y_test = data_split(
-        final_features, final_label, 0.2
-    )
-    ridge_mean_acu = train_ridge_regression(x_train, y_train, x_test, y_test)
-    lasso_mean_acu = train_lasso(x_train, y_train, x_test, y_test)
-    model_R, ridge_coeff = ridge_coefficients(x_train, y_train, 10)
-    model_L, lasso_coeff = lasso_coefficients(x_train, y_train, 0.1)
-    ridge_auc = ridge_area_under_curve(model_R, x_test, y_test)
+    # filename = "Hitters.csv"  # Provide the path of the dataset
+    # df = read_data(filename)
+    # lambda_vals = [1e-3, 1e-2, 1e-1, 1, 1e1, 1e2, 1e3]
+    # max_iter = 1e8
+    # final_features, final_label = data_preprocess(df)
+    # x_train, x_test, y_train, y_test = data_split(
+    #     final_features, final_label, 0.2
+    # )
+    # ridge_mean_acu = train_ridge_regression(x_train, y_train, x_test, y_test)
+    # lasso_mean_acu = train_lasso(x_train, y_train, x_test, y_test)
+    # model_R, ridge_coeff = ridge_coefficients(x_train, y_train, 10)
+    # model_L, lasso_coeff = lasso_coefficients(x_train, y_train, 0.1)
+    # ridge_auc = ridge_area_under_curve(model_R, x_test, y_test)
 
-    # Plot the ROC curve of the Ridge Model. Include axes labels,
-    # legend and title in the Plot. Any of the missing
-    # items in plot will result in loss of points.
-    ########################
-    ## Your Solution Here ##
-    ########################
+    # # Plot the ROC curve of the Ridge Model. Include axes labels,
+    # # legend and title in the Plot. Any of the missing
+    # # items in plot will result in loss of points.
+    # ########################
+    # ## Your Solution Here ##
+    # ########################
 
-    lasso_auc = lasso_area_under_curve(model_L, x_test, y_test)
+    # lasso_auc = lasso_area_under_curve(model_L, x_test, y_test)
 
-    # Plot the ROC curve of the Lasso Model.
-    # Include axes labels, legend and title in the Plot.
-    # Any of the missing items in plot will result in loss of points.
-    ########################
-    ## Your Solution Here ##
-    ########################
+    # # Plot the ROC curve of the Lasso Model.
+    # # Include axes labels, legend and title in the Plot.
+    # # Any of the missing items in plot will result in loss of points.
+    # ########################
+    # ## Your Solution Here ##
+    # ########################
 
-    # SUB Q1
+    # # SUB Q1
+    csvname = "noisy_sin_subsample_2.csv"
     data_regress = np.loadtxt(csvname, delimiter=",")
     data_regress = np.array([[x, y] for x, y in zip(*data_regress)])
-    plt.figure()
-    plt.scatter(data_regress[:, 0], data_regress[:, 1])
-    plt.xlabel("Features, x")
-    plt.ylabel("Target values, y")
-    plt.show()
+    # plt.figure()
+    # plt.scatter(data_regress[:, 0], data_regress[:, 1])
+    # plt.xlabel("Features, x")
+    # plt.ylabel("Target values, y")
+    # plt.show()
 
     mse_depths = []
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
+        classifier = TreeClassifier(data_regress, depth)
         tree = regressor.build_tree()
         mse = 0.0
         for data_point in data_regress:
@@ -514,7 +542,7 @@ if __name__ == "__main__":
 
     accuracy_depths = []
     for depth in range(1, 8):
-        classifier = TreeClassifier(data_class, depth)
+        print(data_class)
         tree = classifier.build_tree()
         correct = 0.0
         for data_point in data_class:
