@@ -317,20 +317,23 @@ class TreeRegressor:
         Do the split operation recursively
 
         """
-        if(depth == 1 ):
-            self.root = node
-            self.root.data = self.root.data.sort()
-            self.root.split_val = self.root.data[(len(self.root.data))/2]
-        else:
-            node.left = TreeRegressor.get_best_split( self.root.data[ 0 : self.root.split_val ] )
-            node.right = TreeRegressor.get_best_split( self.root.data[ self.root.split_val : len(self.root.data) ] )
-            depth +=1
+        # create a value for a decision tree
+
+        # this is going to count down
+        for i in depth:
+            if (depth == 1):
+                self.root = TreeRegressor.get_best_split(node.data.sort())
+                head = self.root
+            else:
+                headLeft = head.left
+                headRight = head.right
+                headLeft = TreeRegressor.get_best_split(headLeft.data.sort())
+                headRight = TreeRegressor.get_best_split(headRight.data.sort())
+
         # if( self.root == None ):
         #     self.root = node
         #     self.root.data = self.root.data.sort()
         #     self.root.split_val = self.root.data[(len(self.root.data))/2]
-        
-        
 
         ######################
         ### YOUR CODE HERE ###
@@ -343,8 +346,10 @@ class TreeRegressor:
         Select the best split point for a dataset AND create a Node
         """
         place = len(data)/2
-        node = Node( split_val= data[place] )
-        node.data = data
+        node = Node( split_val = data [ place ] )
+        node.left.data = data[ 0 : data[place] ]
+        node.right.data = data[ data[place]: ]
+
         return node
         ######################
         ### YOUR CODE HERE ###
