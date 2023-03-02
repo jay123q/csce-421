@@ -258,8 +258,7 @@ class Node:
         self.balanceValue = balanceValue
         self.balanceGroups = balanceGroups
         # data can be anything! we recommend dictionary with all variables you need
-        self.data = {'left': left, 'right': right, 'index': balanceFeature,
-                     'value': balanceValue, 'groups': balanceGroups}
+        self.data = data
 
 
 class TreeRegressor:
@@ -377,14 +376,14 @@ class TreeRegressor:
                     # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
 
        # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
-        left_node = Node(split_val=0, data=left_best, left=None, right=None)
-        right_node = Node(split_val=0, data=right_best, left=None, right=None)
+        nodeLeft = Node(split_val=0, data=left_best, left=None, right=None)
+        nodeRight = Node(split_val=0, data=right_best, left=None, right=None)
 
         # print("left", left_best)
         # print("right", right_best)
 
         node = Node(data[balanceSplit, balanceFeature],
-                    data, left_node, right_node)
+                    data, nodeLeft, nodeRight)
         return node
         ######################
         ### YOUR CODE HERE ###
@@ -436,25 +435,15 @@ def predict(
     ### YOUR CODE HERE ###
     ######################
 
-    # # Make a prediction with a decision tree
-    # def predict(node, row):
-    #  if row[node['index']] < node['value']:
-    #  if isinstance(node['left'], dict):
-    #  return predict(node['left'], row)
-    #  else:
-    #  return node['left']
-    #  else:
-    #  if isinstance(node['right'], dict):
-    #  return predict(node['right'], row)
-    #  else:
-    #  return node['right']
+
     if (node.left and node.right):
         if (comparator(node, row)):
             predict(node.right, row, comparator)
         else:
             predict(node.left, row, comparator)
     else:
-        return np.mean(node.data[:, -1])
+        print(node.data)
+        return np.mean(node.data[:, 1])
     pass
 
 
