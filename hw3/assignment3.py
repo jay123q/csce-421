@@ -291,6 +291,7 @@ class TreeRegressor:
         """
         Build the tree
         """
+        return 0.0
         self.root = Node(0, data=self.data)
 
         min_size = 0
@@ -312,6 +313,7 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
+        return 0.0
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -326,6 +328,7 @@ class TreeRegressor:
         Do the split operation recursively
 
         """
+        return 0.0
         if (depth == self.max_depth):
             return
         # best split of node data
@@ -348,7 +351,7 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-
+        return 0.0
         # classValues = list(set(row[-1] for row in data))
         mean = 999
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
@@ -394,6 +397,7 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
+        return 0.0
         left, right = [], []
         for row in range(data.shape[0]):
             if data[row, index] < value:
@@ -414,6 +418,7 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
+    return 0.0
     return (node.split_val > row[0])
     ######################
     ### YOUR CODE HERE ###
@@ -429,7 +434,7 @@ def predict(
     ### YOUR CODE HERE ###
     ######################
 
-
+    return 0.0
     if (node.left and node.right):
         if (comparator(node, row)):
             predict(node.right, row, comparator)
@@ -447,7 +452,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        pass
+        return 0.0
 
     @typechecked
     def gini_index(
@@ -463,7 +468,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        pass
+        return 0.0
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
@@ -474,7 +479,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        pass
+        return 0.0
 
 
 if __name__ == "__main__":
