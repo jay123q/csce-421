@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from typing import Tuple, List, Optional, Any, Callable, Dict, Union
+import sklearn.metrics as sk
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.linear_model import Ridge, Lasso
 from sklearn.metrics import roc_auc_score, mean_squared_error
@@ -100,7 +101,7 @@ def train_ridge_regression(
         for j in range(len(lambda_vals)):
             ridgeReg = Ridge(alpha=lambda_vals[j], max_iter=max_iter)
             yPred = train_predict(ridgeReg, x_train, y_train, x_test)
-            yPredProb =  (1 + yPred) / (((1+lambda_vals[j]) * (1 - yPred)))
+            yPredProb = (1 + yPred) / (((1+lambda_vals[j]) * (1 - yPred)))
             aucs["Ridge"][lambda_vals[j]].append(
                 roc_auc_score(y_test, yPredProb))
 
@@ -141,7 +142,7 @@ def train_lasso(
         for j in range(len(lambda_vals)):
             lassReg = Lasso(alpha=lambda_vals[j], max_iter=max_iter)
             yPred = train_predict(lassReg, x_train, y_train, x_test)
-            yPredProb = (1 + yPred)/ (((1+lambda_vals[j]) * (1 - yPred)))
+            yPredProb = (1 + yPred) / (((1+lambda_vals[j]) * (1 - yPred)))
             aucs["lasso"][lambda_vals[j]].append(
                 roc_auc_score(y_test, yPredProb))
 
@@ -204,8 +205,8 @@ def ridge_area_under_curve(
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
     # fpr,tpr,linear_threshold = roc_curve( y_test, model_R.predict(x_test) )
-    # print("fpr, ", fpr , " tpr ", tpr  )    
-    return roc_auc_score(y_test, model_R.predict(x_test) )
+    # print("fpr, ", fpr , " tpr ", tpr  )
+    return roc_auc_score(y_test, model_R.predict(x_test))
     ########################
     ## Your Solution Here ##
     ########################
@@ -222,14 +223,15 @@ def lasso_area_under_curve(
 
     Finally plot the ROC Curve using false_positive_rate, true_positive_rate as x and y axes calculated from roc_curve
     """
-    fpr,tpr,linear_threshold = roc_curve( y_test, model_L.predict(x_test) )
-    print("fpr, ", fpr , " tpr ", tpr  )
+    fpr, tpr, linear_threshold = roc_curve(y_test, model_L.predict(x_test))
+    print("fpr, ", fpr, " tpr ", tpr)
 
     return roc_auc_score(y_test, model_L.predict(x_test))
     ########################
     ## Your Solution Here ##
     ########################
     pass
+
 
 class Node:
     @typechecked
@@ -255,7 +257,9 @@ class Node:
         self.balanceFeature = balanceFeature
         self.balanceValue = balanceValue
         self.balanceGroups = balanceGroups
-        self.data = {'left':left,'right':right,'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroups}  # data can be anything! we recommend dictionary with all variables you need
+        # data can be anything! we recommend dictionary with all variables you need
+        self.data = {'left': left, 'right': right, 'index': balanceFeature,
+                     'value': balanceValue, 'groups': balanceGroups}
 
 
 class TreeRegressor:
@@ -265,10 +269,9 @@ class TreeRegressor:
             data  # last element of each row in data is the target variable
         )
         self.max_depth = max_depth  # maximum depth
-        self.root = None
         self.best_split = None
         self._nleaves = None
-    
+
     # def AddNode(self, pointer = self.root, node: Node ):
     #     # using the stump formula
     #     if (node.data <= pointer.data):
@@ -292,11 +295,13 @@ class TreeRegressor:
     def to_terminal(group):
         outcomes = [row[-1] for row in group]
         return max(set(outcomes), key=outcomes.count)
+
     @typechecked
     def build_tree(self) -> Node:
         """
         Build the tree
         """
+        self.root = Node(0, data=self.data)
 
         min_size = 0
         self.split(self.root, self.max_depth)
@@ -322,27 +327,26 @@ class TreeRegressor:
         ######################
         if len(left_split) == 0 or len(right_split) == 0:
             return 1000.0
-        return mean_squared_error(left_split, right_split)
+        return sk.mean_squared_error(left_split, right_split)
         pass
 
     @typechecked
-    def split(self, node: Node, depth: int ) -> None:
+    def split(self, node: Node, depth: int) -> None:
         """
         Do the split operation recursively
 
         """
-        if( depth == self.max_depth):
+        if (depth == self.max_depth):
             return
-        copyNode = self.get_best_split(node , node.data)
-
+        print(type.node)
+        copyNode = self.get_best_split(node, node.data)
         node = copyNode
         node.right = copyNode.right
         node.split_val = copyNode.split_val
         node.left = copyNode.left
-        depth +=1
-        split(node.left, depth)
-        split(node.right, depth)
-
+        depth += 1
+        self.split(node.left, depth)
+        self.split(node.right, depth)
 
         ######################
         ### YOUR CODE HERE ###
@@ -350,7 +354,7 @@ class TreeRegressor:
         pass
 
     @typechecked
-    def get_best_split(self, node: Node,data : np.ndarray) -> Node:
+    def get_best_split(self, node: Node, data: np.ndarray) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
@@ -359,19 +363,18 @@ class TreeRegressor:
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
         left_best = np.empty((1, data.shape[1]))
         right_best = np.empty((1, data.shape[1]))
-        #remove 1 double compare
+        # remove 1 double compare
         for index in range(data.shape[1]-1):
             for row in data.shape[0]:
-                groups = self.one_step_split(index, data[row,index], data)
-                checkMean = self.mean_squared_error( groups[0] , groups[1] )
-                if mean < checkMean :
+                groups = self.one_step_split(index, data[row, index], data)
+                checkMean = self.mean_squared_error(groups[0], groups[1])
+                if mean < checkMean:
                     mean = checkMean
                     balanceFeature = index
                     balanceSplit = row
                     left_best = groups[0]
                     right_best = groups[1]
                     # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
-
 
        # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
         left_node = Node(split_val=0, data=left_best, left=None, right=None)
@@ -380,7 +383,8 @@ class TreeRegressor:
         # print("left", left_best)
         # print("right", right_best)
 
-        node = Node(data[balanceSplit, balanceFeature], data, left_node, right_node)
+        node = Node(data[balanceSplit, balanceFeature],
+                    data, left_node, right_node)
         return node
         ######################
         ### YOUR CODE HERE ###
@@ -397,9 +401,9 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        left, right = [] , []
+        left, right = [], []
         for row in data.shape[0]:
-            if data[row,index] < value:
+            if data[row, index] < value:
                 left.append([data[row]])
             else:
                 right.append([data[row]])
@@ -431,6 +435,26 @@ def predict(
     ######################
     ### YOUR CODE HERE ###
     ######################
+
+    # # Make a prediction with a decision tree
+    # def predict(node, row):
+    #  if row[node['index']] < node['value']:
+    #  if isinstance(node['left'], dict):
+    #  return predict(node['left'], row)
+    #  else:
+    #  return node['left']
+    #  else:
+    #  if isinstance(node['right'], dict):
+    #  return predict(node['right'], row)
+    #  else:
+    #  return node['right']
+    if (node.left and node.right):
+        if (comparator(node, row)):
+            predict(node.right, row, comparator)
+        else:
+            predict(node.left, row, comparator)
+    else:
+        return np.mean(node.data[:, -1])
     pass
 
 
@@ -463,11 +487,13 @@ class TreeClassifier(TreeRegressor):
         """
         Select the best split point for a dataset
         """
-        #classes = list(set(row[-1] for row in data))
+        # classes = list(set(row[-1] for row in data))
         ######################
         ### YOUR CODE HERE ###
         ######################
         pass
+
+
 if __name__ == "__main__":
     # Question 1
     # filename = "Hitters.csv"  # Provide the path of the dataset
@@ -483,7 +509,7 @@ if __name__ == "__main__":
     # model_R, ridge_coeff = ridge_coefficients(x_train, y_train, 10)
     # model_L, lasso_coeff = lasso_coefficients(x_train, y_train, 0.1)
     # ridge_auc= ridge_area_under_curve(model_R, x_test, y_test)
-    # fpr = [0., 0., 0.,0.09677419,0.09677419,0.12903226, 0.12903226 , 0.32258065 ,0.32258065, 1.]  
+    # fpr = [0., 0., 0.,0.09677419,0.09677419,0.12903226, 0.12903226 , 0.32258065 ,0.32258065, 1.]
     # tpr =  [0. , 0.04545455 , 0.86363636 , 0.86363636 , 0.90909091 , 0.90909091 ,  0.95454545 , 0.95454545 ,  1. , 1. ]
     # plt.figure()
     # plt.plot( fpr , tpr )
