@@ -448,12 +448,12 @@ def predict(
 
 
 class TreeClassifier(TreeRegressor):
-    def build_tree(self):
-        # Note: You can remove this if you want to use build tree from Tree Regressor
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        return Node(0.0)
+    # def build_tree(self):
+    #     # Note: You can remove this if you want to use build tree from Tree Regressor
+    #     ######################
+    #     ### YOUR CODE HERE ###
+    #     ######################
+
 
     @typechecked
     def gini_index(
@@ -466,10 +466,24 @@ class TreeClassifier(TreeRegressor):
         Calculate the Gini index for a split dataset
         Similar to MSE but Gini index instead
         """
+
         ######################
         ### YOUR CODE HERE ###
         ######################
         return 0.0
+        N = left_split.shape[0] + right.shape[0]
+        leftProb = left_split.shape[0] / N
+        rightProb = right_split.shape[0] / N
+        #### find the gini ####
+        probLeftClass,probRightClass = [],[]
+        for cls in classes:
+            probLeftClass.append((left_split == cls).sum() / left_split.shape[0])
+            probRightClass.append((right_split == cls).sum() / right_split.shape[0])
+
+        LHSClassProb = 1 - ((np.array(probLeftCLass)*np.array(probLeftClass)).sum())
+        RHSClassProb = 1 - ((np.array(probRightClass)*np.array(probRightClass)).sum())
+
+        return leftProb * LHSClassProb + rightProb * RHSClassProb
 
     @typechecked
     def get_best_split(self, data: np.ndarray) -> Node:
@@ -481,6 +495,36 @@ class TreeClassifier(TreeRegressor):
         ### YOUR CODE HERE ###
         ######################
         return Node(0.0)
+        # classValues = list(set(row[-1] for row in data))
+        mean = 999
+        balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
+        balanceSplit, balanceFeature = 0.0,0
+        left_best = np.empty((1, data.shape[1]))
+        right_best = np.empty((1, data.shape[1]))
+
+        # remove 1 double compare
+        for index in range(data.shape[1]-1):
+            for row in range(data.shape[0]):
+                groups = self.one_step_split(index, data[row, index], data)
+                checkMean = self.mean_squared_error(groups[0], groups[1])
+                if checkMean < mean:
+                    mean = checkMean
+                    balanceFeature = index
+                    balanceSplit = row
+                    left_best = groups[0]
+                    right_best = groups[1]
+                    # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
+
+       # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
+        nodeLeft = Node(split_val=0, data=left_best, left=None, right=None)
+        nodeRight = Node(split_val=0, data=right_best, left=None, right=None)
+
+        # print("left", left_best)
+        # print("right", right_best)
+        #print(data[int(balanceSplit),balanceFeature])
+        node = Node(data[int(balanceSplit), balanceFeature],
+                    data, nodeLeft, nodeRight)
+        return node
 
 
 if __name__ == "__main__":
@@ -501,8 +545,10 @@ if __name__ == "__main__":
     # fpr = [0., 0., 0.,0.09677419,0.09677419,0.12903226, 0.12903226 , 0.32258065 ,0.32258065, 1.]
     # tpr =  [0. , 0.04545455 , 0.86363636 , 0.86363636 , 0.90909091 , 0.90909091 ,  0.95454545 , 0.95454545 ,  1. , 1. ]
     # plt.figure()
-    # plt.plot( fpr , tpr )
+    # plt.plot( fpr , tpr , label = "ridge prediction" )
     # plt.title(" ridge tpr vs fpr ")
+    # plt.legend()
+
     # plt.xlabel("Fpr")
     # plt.ylabel("Tpr")
     # plt.show()
@@ -517,8 +563,10 @@ if __name__ == "__main__":
     # fpr = [0. ,  0. , 0. ,  0.29032258 , 0.29032258 , 0.35483871 , 0.35483871 , 1. ]
     # tpr =  [0., 0.04545455, 0.90909091, 0.90909091, 0.95454545, 0.95454545, 1.,  1.  ]
     # plt.figure()
-    # plt.plot( fpr , tpr )
+    # plt.plot( fpr , tpr ,label = "lasso prediction")
+    # plt.legend()
     # plt.title(" lasso tpr vs fpr ")
+
     # plt.xlabel("Fpr")
     # plt.ylabel("Tpr")
     # plt.show()
