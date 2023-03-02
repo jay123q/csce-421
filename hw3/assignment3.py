@@ -231,7 +231,6 @@ def lasso_area_under_curve(
     ########################
     pass
 
-
 class Node:
     @typechecked
     def __init__(
@@ -246,19 +245,17 @@ class Node:
 
         if right is not None:
             assert isinstance(right, Node)
-        balanceIndex = None
+        balanceFeature = None
         balanceValue = None
         balanceGroups = None
         self.left = left
         self.right = right
         # value (of a variable) on which to split. For leaf nodes this is label/output value
         self.split_val = split_val
-        self.balanceIndex = balanceIndex
+        self.balanceFeature = balanceFeature
         self.balanceValue = balanceValue
         self.balanceGroups = balanceGroups
-        # data can be anything! we recommend dictionary with all variables you need
-        self.data = {'left': left, 'right': right, 'index': balanceIndex,
-                     'value': balanceValue, 'groups': balanceGroups}
+        self.data = {'left':left,'right':right,'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroups}  # data can be anything! we recommend dictionary with all variables you need
 
 
 class TreeRegressor:
@@ -271,7 +268,7 @@ class TreeRegressor:
         self.root = None
         self.best_split = None
         self._nleaves = None
-        print(data)
+    
     # def AddNode(self, pointer = self.root, node: Node ):
     #     # using the stump formula
     #     if (node.data <= pointer.data):
@@ -293,11 +290,9 @@ class TreeRegressor:
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         # YOUR CODE HERE
         self.bestSplit = self.get_best_split(data)
-
     def to_terminal(group):
         outcomes = [row[-1] for row in group]
         return max(set(outcomes), key=outcomes.count)
-
     @typechecked
     def build_tree(self) -> Node:
         """
@@ -320,22 +315,18 @@ class TreeRegressor:
         """
         Calculate the mean squared error for a split dataset
         left split is a list of rows of a df, rightmost element is label
-        return the sum of mse of left split and right split 
+        return the sum of mse of left split and right split
         """
-        print(left_split.shape)
-        print(right_split.shape)
-        return mean_squared_error(left_split, right_split)
-        mse = np.mean(np.square(left_split - np.mean(left_split)))
-
-        mse += np.mean(np.square(right_split - np.mean(right_split)))
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return np.mean(np.square(left_split - right_split)) + np.mean(np.square(right_split - left_split))
+        if len(left_split) == 0 or len(right_split) == 0:
+            return 1000.0
+        return mean_squared_error(left_split, right_split)
         pass
 
     @typechecked
-    def split(self, node: Node, depth: int, counter: int) -> None:
+    def split(self, node: Node, depth: int , counter : int) -> None:
         """
         Do the split operation recursively
 
@@ -354,7 +345,7 @@ class TreeRegressor:
         #         TreeRegressor.split( headLeft , depth , counter )
         #         TreeRegressor.split( headRight , depth , counter  )
         # elif( counter == depth ):
-        #     return
+        #     return 
         # else:
         #         counter += 1
         #         nodeLeft = node.left
@@ -375,54 +366,41 @@ class TreeRegressor:
         pass
 
     @typechecked
-    def get_best_split(self, data: np.ndarray) -> Node:
+    def get_best_split(self, data : np.ndarray) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
-        features, label = data[:,0],data[:,1]
-        nRow, nCol = data.shape
-        checkVal = -1
-        for dataPoint in range(nCol):
-            xCurr = data[:, dataPoint]
-            for threshold in np.unique(xCurr):
-                #dataFrame = np.concatenate((features, label.reshape(1,-1).T) , axis=0 )
-                dataFrame = data
-                print(dataFrame.shape)
-                dataFrame = data
-                leftHalf  = np.array([row for row in dataFrame if row[dataPoint]  <= threshold ])
-                rightHalf  = np.array([row for row in dataFrame if row[dataPoint]  > threshold ])
-                if len( leftHalf ) > 0 and len( rightHalf ) > 0:
-                    data = dataFrame[:,-1]
-                    yLeft = leftHalf[:,-1]
-                    yRight = rightHalf[:,-1]
-                
-                    yLeft = np.expand_dims(yLeft,axis = 1)
-                    yRightShape = yRight.shape
-                    #yLeft = yLeft.reshape(yRight.shape)
-                    print(yLeft.shape," left and right ", yRight.shape )
-                    mean = self.mean_squared_error( yLeft , yRight )
 
-                    if( mean > checkVal ):
-                        node = Node( split_val=threshold, data= data )
-                        checkVal = mean
-            return node
-                    
-                # classValues = list(set(row[-1] for row in data))
-                # balanceIndex, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
-                # #
-                # for index in range(len(data)-1):
-                #     for row in data:
-                #         groups = self.one_step_split(index, row[index], data)
-                #         print(groups)
-                #         mean = self.mean_squared_error( groups )
-                #         if mean < balanceScore :
-                #             balanceIndex, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
+        # classValues = list(set(row[-1] for row in data))
+        balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
+        left_best = np.empty((1, data.shape[1]))
+        right_best = np.empty((1, data.shape[1]))
+        #remove 1 double compare
+        for index in range(data.shape[1]-1):
+            for row in data.shape[0]:
+                groups = self.one_step_split(index, data[row,index], data)
+                checkMean = self.mean_squared_error( groups[0] , groups[1] )
+                if mean < checkMean :
+                    mean = checkMean
+                    balanceFeature = index
+                    balanceSplit = row
+                    left_best = groups[0]
+                    right_best = groups[1]
+                    # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
 
-                # return {'index':balanceIndex, 'value':balanceValue, 'groups':balanceGroup}
-                ######################
-                ### YOUR CODE HERE ###
-                ######################
-        return Node(split_val=0)
+
+       # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
+        left_node = Node(split_val=0, data=left_best, left=None, right=None)
+        right_node = Node(split_val=0, data=right_best, left=None, right=None)
+
+        # print("left", left_best)
+        # print("right", right_best)
+
+        node = Node(data[balanceSplit, balanceFeature], data, left_node, right_node)
+        return node
+        ######################
+        ### YOUR CODE HERE ###
+        ######################
         pass
 
     @typechecked
@@ -435,13 +413,12 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        left, right = [], []
-        for row in data:
-            # print(row[index]," compared too ", value)
-            if row[index] < value:
-                left.append(row)
+        left, right = [] , []
+        for row in data.shape[0]:
+            if data[row,index] < value:
+                left.append([data[row]])
             else:
-                right.append(row)
+                right.append([data[row]])
         return np.array(left), np.array(right)
 
         ######################
@@ -456,7 +433,7 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
-    return (node.split_val > row[len(row)])
+    return (node.split_val > row[0])
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -470,7 +447,6 @@ def predict(
     ######################
     ### YOUR CODE HERE ###
     ######################
-
     pass
 
 
@@ -480,9 +456,6 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        min_size = 0
-        self.split(self.root, self.max_depth, min_size, 1)
-        return self.root
         pass
 
     @typechecked
@@ -495,27 +468,10 @@ class TreeClassifier(TreeRegressor):
         """
         Calculate the Gini index for a split dataset
         Similar to MSE but Gini index instead
-        # """
-        # # count all samples at split point
-        # n_instances = float(sum([len(group) for group in left_split]))
-        # n_instances += float(sum([len(group) for group in right_split]))
-        # # sum weighted Gini index for each group
-        # gini = 0.0
-        # # make one group
-        # groups = left_split + right_split
-        # for group in groups:
-        #     size = float(len(group))
-        #     # avoid divide by zero
-        #     if size == 0:
-        #         continue
-        #     score = 0.0
-        #     # score the group based on the score for each class
-        #     for class_val in classes:
-        #         p = [row[-1] for row in group].count(class_val) / size
-        #         score += p * p
-        #     # weight the group score by its relative size
-        #     gini += (1.0 - score) * (size / n_instances)
-        # return gini
+        """
+        ######################
+        ### YOUR CODE HERE ###
+        ######################
         pass
 
     @typechecked
@@ -523,26 +479,11 @@ class TreeClassifier(TreeRegressor):
         """
         Select the best split point for a dataset
         """
-
-        # classValues = list(set(row[-1] for row in data))
-        # balanceIndex, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
-        # #
-        # for index in range(len(data)-1):
-        #     for row in data:
-        #         groups = self.one_step_split(index, row[index], data)
-        #         print(groups)
-        #         mean = self.gini_index(groups[0], groups[1],  classValues)
-        #         if mean < balanceScore:
-        #             balanceIndex, balanceValue, balanceScore, balanceGroup = index, row[
-        #                 index], mean, groups
-
-        return balanceValue
+        #classes = list(set(row[-1] for row in data))
         ######################
         ### YOUR CODE HERE ###
         ######################
         pass
-
-
 if __name__ == "__main__":
     # Question 1
     filename = "Hitters.csv"  # Provide the path of the dataset
