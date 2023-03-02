@@ -271,23 +271,14 @@ class TreeRegressor:
         self.best_split = None
         self._nleaves = None
 
-    # def AddNode(self, pointer = self.root, node: Node ):
-    #     # using the stump formula
-    #     if (node.data <= pointer.data):
-    #         # check left
-    #         if (self.left == None):
-    #             # if its none add
-    #             self.left = pointer
-    #         else:
-    #             self = self.left
-    #             TreeRegressor.AddNode(pointer, node)
-    #     else:
-    #         if (self.right == None):
-    #             self.right = pointer
-    #         else:
-    #              self = self.right
-    #              TreeRegressor.AddNode(node)
-
+    def printer(self, node : Node,  depth : int):
+        " print all layers"
+        if (depth == self.max_depth):
+            return
+        depth+=1
+        print(node.split_val)
+        self.printer(node.left,depth)
+        self.printer(node.right,depth)
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         # YOUR CODE HERE
@@ -303,8 +294,8 @@ class TreeRegressor:
         self.root = Node(0, data=self.data)
 
         min_size = 0
-        self.split(self.root, self.max_depth)
-
+        self.split(self.root, 1)
+        self.printer(self.root, 1 )
         return self.root
         # root.split_value = TreeRegressor.mean_squared_error()
         ######################
@@ -326,7 +317,7 @@ class TreeRegressor:
         ######################
         if len(left_split) == 0 or len(right_split) == 0:
             return 1000.0
-        return sk.mean_squared_error(left_split, right_split)
+        return np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1]))) + np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
         pass
 
     @typechecked
@@ -337,7 +328,7 @@ class TreeRegressor:
         """
         if (depth == self.max_depth):
             return
-        print(type.node)
+        # best split of node data
         copyNode = self.get_best_split(node, node.data)
         node = copyNode
         node.right = copyNode.right
@@ -359,15 +350,18 @@ class TreeRegressor:
         """
 
         # classValues = list(set(row[-1] for row in data))
+        mean = 999
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
+        balanceSplit, balanceFeature = 0.0,0
         left_best = np.empty((1, data.shape[1]))
         right_best = np.empty((1, data.shape[1]))
+
         # remove 1 double compare
         for index in range(data.shape[1]-1):
-            for row in data.shape[0]:
+            for row in range(data.shape[0]):
                 groups = self.one_step_split(index, data[row, index], data)
                 checkMean = self.mean_squared_error(groups[0], groups[1])
-                if mean < checkMean:
+                if checkMean < mean:
                     mean = checkMean
                     balanceFeature = index
                     balanceSplit = row
@@ -381,8 +375,8 @@ class TreeRegressor:
 
         # print("left", left_best)
         # print("right", right_best)
-
-        node = Node(data[balanceSplit, balanceFeature],
+        #print(data[int(balanceSplit),balanceFeature])
+        node = Node(data[int(balanceSplit), balanceFeature],
                     data, nodeLeft, nodeRight)
         return node
         ######################
@@ -401,7 +395,7 @@ class TreeRegressor:
         each list has elements as `rows' of the df
         """
         left, right = [], []
-        for row in data.shape[0]:
+        for row in range(data.shape[0]):
             if data[row, index] < value:
                 left.append([data[row]])
             else:
@@ -442,7 +436,7 @@ def predict(
         else:
             predict(node.left, row, comparator)
     else:
-        print(node.data)
+        # print(node.data)
         return np.mean(node.data[:, 1])
     pass
 
@@ -544,6 +538,7 @@ if __name__ == "__main__":
         regressor = TreeRegressor(data_regress, depth)
         classifier = TreeClassifier(data_regress, depth)
         tree = regressor.build_tree()
+        
         mse = 0.0
         for data_point in data_regress:
             mse += (
@@ -551,11 +546,12 @@ if __name__ == "__main__":
                 - predict(tree, data_point, compare_node_with_threshold)
             ) ** 2
         mse_depths.append(mse / len(data_regress))
-    # plt.figure()
-    # plt.plot(mse_depths)
-    # plt.xlabel("Depth")
-    # plt.ylabel("MSE")
-    # plt.show()
+    # regressor.printer(tree , 1)
+    plt.figure()
+    plt.plot(mse_depths)
+    plt.xlabel("Depth")
+    plt.ylabel("MSE")
+    plt.show()
 
     # # SUB Q2
     # # Place the CSV file in the same directory as this notebook
