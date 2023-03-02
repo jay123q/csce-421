@@ -291,7 +291,7 @@ class TreeRegressor:
         """
         Build the tree
         """
-        return 0.0
+        return Node(0.0)
         self.root = Node(0, data=self.data)
 
         min_size = 0
@@ -313,13 +313,14 @@ class TreeRegressor:
         left split is a list of rows of a df, rightmost element is label
         return the sum of mse of left split and right split
         """
-        return 0.0
         ######################
         ### YOUR CODE HERE ###
         ######################
+        return 0.0
         if len(left_split) == 0 or len(right_split) == 0:
             return 1000.0
-        return np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1]))) + np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
+        return sk.mean_squared_error(left_split, right_split)
+        # return np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1]))) + np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
         pass
 
     @typechecked
@@ -328,7 +329,7 @@ class TreeRegressor:
         Do the split operation recursively
 
         """
-        return 0.0
+
         if (depth == self.max_depth):
             return
         # best split of node data
@@ -351,7 +352,7 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-        return 0.0
+        return Node(0.0)
         # classValues = list(set(row[-1] for row in data))
         mean = 999
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
@@ -397,7 +398,7 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-        return 0.0
+
         left, right = [], []
         for row in range(data.shape[0]):
             if data[row, index] < value:
@@ -418,7 +419,7 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
-    return 0.0
+    return False
     return (node.split_val > row[0])
     ######################
     ### YOUR CODE HERE ###
@@ -433,8 +434,8 @@ def predict(
     ######################
     ### YOUR CODE HERE ###
     ######################
-
     return 0.0
+
     if (node.left and node.right):
         if (comparator(node, row)):
             predict(node.right, row, comparator)
@@ -452,7 +453,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return 0.0
+        return Node(0.0)
 
     @typechecked
     def gini_index(
@@ -479,7 +480,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return 0.0
+        return Node(0.0)
 
 
 if __name__ == "__main__":
