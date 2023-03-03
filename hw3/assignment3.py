@@ -10,7 +10,7 @@ from typing import Tuple, List, Optional, Any, Callable, Dict, Union
 import sklearn.metrics as sk
 from sklearn.metrics import roc_curve, roc_auc_score
 from sklearn.linear_model import Ridge, Lasso
-from sklearn.metrics import roc_auc_score, mean_squared_error
+from sklearn.metrics import roc_auc_score
 import random
 from typeguard import typechecked
 
@@ -291,7 +291,7 @@ class TreeRegressor:
         """
         Build the tree
         """
-        return Node(0.0)
+        #return Node(0.0)
         self.root = Node(0, data=self.data)
 
         min_size = 0
@@ -316,11 +316,12 @@ class TreeRegressor:
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return 0.0
+        #return 0.0
         if len(left_split) == 0 or len(right_split) == 0:
             return 1000.0
-        return sk.mean_squared_error(left_split, right_split)
-        # return np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1]))) + np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
+        lhsMean = np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1])))
+        rhsMean = np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
+        return lhsMean+rhsMean
         pass
 
     @typechecked
@@ -352,7 +353,7 @@ class TreeRegressor:
         """
         Select the best split point for a dataset AND create a Node
         """
-        return Node(0.0)
+        #return Node(0.0)
         # classValues = list(set(row[-1] for row in data))
         mean = 999
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
@@ -419,7 +420,7 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
-    return False
+    #return False
     return (node.split_val > row[0])
     ######################
     ### YOUR CODE HERE ###
@@ -434,7 +435,7 @@ def predict(
     ######################
     ### YOUR CODE HERE ###
     ######################
-    return 0.0
+    #return 0.0
 
     if (node.left and node.right):
         if (comparator(node, row)):
@@ -470,7 +471,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return 0.0
+        #return 0.0
         N = left_split.shape[0] + right.shape[0]
         leftProb = left_split.shape[0] / N
         rightProb = right_split.shape[0] / N
@@ -494,7 +495,7 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        return Node(0.0)
+        #return Node(0.0)
         # classValues = list(set(row[-1] for row in data))
         mean = 999
         balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
