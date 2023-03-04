@@ -249,39 +249,40 @@ class Node:
             assert isinstance(right, Node)
         balanceFeature = None
         balanceValue = None
-        balanceGroups = None
+        balance = None
         self.left = left
         self.right = right
         # value (of a variable) on which to split. For leaf nodes this is label/output value
         self.split_val = split_val
         self.balanceFeature = balanceFeature
         self.balanceValue = balanceValue
-        self.balanceGroups = balanceGroups
+        self.balance = balance
         # data can be anything! we recommend dictionary with all variables you need
         self.data = data
 
 
 class TreeRegressor:
     @typechecked
-    def __init__(self, data: np.ndarray, max_depth: int) -> None:
+    def __init__(self, data: np.ndarray, max_depth: int, nleaves = 2) -> None:
         self.data = (
             data  # last element of each row in data is the target variable
         )
         self.max_depth = max_depth  # maximum depth
         self.best_split = None
-        self._nleaves = None
+        self._nleaves = nleaves
 
-    def printer(self, node : Node,  depth : int):
+    def printer(self, node: Node,  depth: int):
         " print all layers"
         if (depth == self.max_depth):
             return
-        depth+=1
+        depth += 1
         print(node.split_val)
-        self.printer(node.left,depth)
-        self.printer(node.right,depth)
+        self.printer(node.left, depth)
+        self.printer(node.right, depth)
         # YOU MAY ADD ANY OTHER VARIABLES THAT YOU NEED HERE
         # YOU MAY ALSO ADD FUNCTIONS **WITHIN CLASS or functions INSIDE CLASS** TO HELP YOU ORGANIZE YOUR BETTER
         # YOUR CODE HERE
+
     def to_terminal(group):
         outcomes = [row[-1] for row in group]
         return max(set(outcomes), key=outcomes.count)
@@ -291,17 +292,32 @@ class TreeRegressor:
         """
         Build the tree
         """
-        #return Node(0.0)
-        self.root = Node(0, data=self.data)
+        if len(set(self.data[:, -1].flatten())) == 1 or self.max_depth == 0:
+            return Node(split_val=np.mean(self.data[:, -1]), data=self.data[:, :-1])
 
-        min_size = 0
-        self.split(self.root, 1)
-        self.printer(self.root, 1 )
-        return self.root
-        # root.split_value = TreeRegressor.mean_squared_error()
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
+        
+        # Find the best split for the current data.
+        best_params = self.get_best_split(self.data[:,:-1])
+        
+        # If no split can be found, return a leaf node with the mean value of the target variable.
+        if best_params is None:
+            return Node(split_val=np.mean(self.data[:, -1]), data=self.data[:,:1])
+        
+        # create a tree within the node and append
+        left_data, right_data = self.data[best_params.left], self.data[best_params.right]
+        LHS = self.__class__(left_data, max_depth=self.max_depth - 1)
+        RHS = self.__class__(right_data, max_depth=self.max_depth - 1)
+
+        left_subtree = LHS.build_tree()
+        right_subtree = RHS.build_tree()
+        
+        # Return the current node with the best split.
+        return Node(
+            split_val=best_params.split_val,
+            data=self.data[:,:-1],
+            left=left_subtree,
+            right=right_subtree,
+        )
         pass
 
     @typechecked
@@ -316,11 +332,13 @@ class TreeRegressor:
         ######################
         ### YOUR CODE HERE ###
         ######################
-        #return 0.0
+        # return 0.0
         if len(left_split) == 0 or len(right_split) == 0:
             return 1000.0
-        lhsMean = np.mean(np.square(left_split[:, -1] - np.mean(left_split[:, -1])))
-        rhsMean = np.mean(np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
+        lhsMean = np.mean(
+            np.square(left_split[:, -1] - np.mean(left_split[:, -1])))
+        rhsMean = np.mean(
+            np.square(right_split[:, -1] - np.mean(right_split[:, -1])))
         return lhsMean+rhsMean
         pass
 
@@ -331,59 +349,70 @@ class TreeRegressor:
 
         """
 
-        if (depth == self.max_depth):
-            return
-        # best split of node data
-        copyNode = self.get_best_split(node, node.data)
-        node = copyNode
-        node.right = copyNode.right
-        node.split_val = copyNode.split_val
-        node.left = copyNode.left
-        depth += 1
-        self.split(node.left, depth)
-        self.split(node.right, depth)
 
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        pass
+        left_data = node.data
+        right_data = np.empty((0, self.data.shape[1]))
+
+        if depth > 0 and len(set(left_data[:, -1])) != 1:
+            best_split = self.get_best_split(left_data)
+            if best_split:
+                left_indices = best_split.left
+                right_indices = best_split.right
+                node.left = Node(split_val=best_split.split_val,
+                                data=left_data[left_indices])
+                node.right = Node(split_val=best_split.split_val,
+                                data=left_data[right_indices])
+                self.split(node.left, depth - 1)
+                self.split(node.right, depth - 1)
+            else:
+                node.left = Node(split_val=np.mean(left_data[:, -1]), data=left_data)
+        else:
+            node.left = Node(split_val=np.mean(left_data[:, -1]), data=left_data)
+
+    ######################
+    ### YOUR CODE HERE ###
+    ######################
+    pass
 
     @typechecked
-    def get_best_split(self, node: Node, data: np.ndarray) -> Node:
+    def get_best_split(self, data: np.ndarray ) -> Node:
         """
         Select the best split point for a dataset AND create a Node
         """
-        #return Node(0.0)
+        for i in data.shape:
+          if i == 0:
+            return Node(split_val=0)
+        # return Node(0.0)
         # classValues = list(set(row[-1] for row in data))
-        mean = 999
-        balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
-        balanceSplit, balanceFeature = 0.0,0
-        left_best = np.empty((1, data.shape[1]))
-        right_best = np.empty((1, data.shape[1]))
-
-        # remove 1 double compare
-        for index in range(data.shape[1]-1):
-            for row in range(data.shape[0]):
-                groups = self.one_step_split(index, data[row, index], data)
-                checkMean = self.mean_squared_error(groups[0], groups[1])
-                if checkMean < mean:
-                    mean = checkMean
-                    balanceFeature = index
-                    balanceSplit = row
-                    left_best = groups[0]
-                    right_best = groups[1]
-                    # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
-
-       # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
-        nodeLeft = Node(split_val=0, data=left_best, left=None, right=None)
-        nodeRight = Node(split_val=0, data=right_best, left=None, right=None)
-
-        # print("left", left_best)
-        # print("right", right_best)
-        #print(data[int(balanceSplit),balanceFeature])
-        node = Node(data[int(balanceSplit), balanceFeature],
-                    data, nodeLeft, nodeRight)
-        return node
+        best_params = None
+        best_mse = float('inf')
+        
+        # Iterate over all features and possible split values.
+        for feature_idx in range(data.shape[1]-1):
+            for split_val in np.unique(data[:, feature_idx]):
+                left_data, right_data = self.one_step_split(feature_idx, split_val, data)
+                
+                # Skip this split if either left or right side is empty.
+                if left_data.shape[0] == 0 or right_data.shape[0] == 0:
+                    continue
+                
+                mse = self.mean_squared_error(left_data, right_data)
+                
+                # Update best_params if this split has lower mse.
+                if mse < best_mse:
+                    best_params = (feature_idx, split_val, mse)
+                    best_mse = mse
+        
+        if(best_params):
+            left_data, right_data = self.one_step_split(best_params[0],best_params[1],data)
+            node = Node(
+                split_val=best_params[1],
+                data=data,
+                left=Node(split_val=left_data[:, -1].mean()),
+                right=Node(split_val=right_data[:, -1].mean()),
+            )
+            return node
+        return Node(split_val=np.mean(data[:,-1]), data=data)
         ######################
         ### YOUR CODE HERE ###
         ######################
@@ -399,14 +428,13 @@ class TreeRegressor:
         returns the left and right split each as list
         each list has elements as `rows' of the df
         """
-
-        left, right = [], []
-        for row in range(data.shape[0]):
-            if data[row, index] < value:
-                left.append([data[row]])
-            else:
-                right.append([data[row]])
-        return np.array(left), np.array(right)
+        if len(data.shape) == 3:
+          left_side = data[data[:, index, 0] < value]
+          right_side = data[data[:, index, 0] >= value]
+        else: 
+          left_side = data[data[:, index] < value]
+          right_side = data[data[:, index] >= value]
+        return left_side, right_side
 
         ######################
         ### YOUR CODE HERE ###
@@ -420,9 +448,12 @@ def compare_node_with_threshold(node: Node, row: np.ndarray) -> bool:
     Return True if node's value > row's value (of the variable)
     Else False
     """
-    #return False
-    return (node.split_val > row[0])
-    ######################
+    # return False
+    if node.split_val <= row[-1]:
+      return False
+    else:
+      return True
+       ######################
     ### YOUR CODE HERE ###
     ######################
     pass
@@ -435,25 +466,29 @@ def predict(
     ######################
     ### YOUR CODE HERE ###
     ######################
-    #return 0.0
+    # return 0.0
 
-    if (node.left and node.right):
-        if (comparator(node, row)):
-            predict(node.right, row, comparator)
-        else:
-            predict(node.left, row, comparator)
+    if node.left is None and node.right is None:
+        return node.split_val
+    if comparator(node, row):
+        return predict(node.left, row, comparator)
     else:
-        # print(node.data)
-        return np.mean(node.data[:, 1])
+        return predict(node.right, row, comparator)
+    return 0.0
     pass
 
 
 class TreeClassifier(TreeRegressor):
-    # def build_tree(self):
-    #     # Note: You can remove this if you want to use build tree from Tree Regressor
-    #     ######################
-    #     ### YOUR CODE HERE ###
-    #     ######################
+    def build_tree(self, depth=1) -> Node:
+        # Note: You can remove this if you want to use build tree from Tree Regressor
+        if depth == self.max_depth or len(self.data) < self._nleaves or len(np.unique(self.data[:, -1])) == 1:
+            # Choose the most common class or the class itself as the split value
+            classed, counted = np.unique(self.data[:, -1].astype(int), return_counts=True)
+            return Node(split_val=int(classed[np.argmax(counted)]), data=self.data)
+
+        # Choose the best split and return the resulting node
+        return self.get_best_split(self.data)
+
 
 
     @typechecked
@@ -471,18 +506,20 @@ class TreeClassifier(TreeRegressor):
         ######################
         ### YOUR CODE HERE ###
         ######################
-        #return 0.0
-        N = left_split.shape[0] + right.shape[0]
+        # return 0.0
+        N = left_split.shape[0] + right_split.shape[0]
         leftProb = left_split.shape[0] / N
         rightProb = right_split.shape[0] / N
         #### find the gini ####
-        probLeftClass,probRightClass = [],[]
+        probLeftClass, probRightClass = [], []
         for cls in classes:
-            probLeftClass.append((left_split == cls).sum() / left_split.shape[0])
-            probRightClass.append((right_split == cls).sum() / right_split.shape[0])
+            probLeftClass.append(
+                (left_split == cls).sum() / left_split.shape[0])
+            probRightClass.append(
+                (right_split == cls).sum() / right_split.shape[0])
 
-        LHSClassProb = 1 - ((np.array(probLeftCLass)*np.array(probLeftClass)).sum())
-        RHSClassProb = 1 - ((np.array(probRightClass)*np.array(probRightClass)).sum())
+        LHSClassProb = 1 - ((np.array(probLeftClass)*np.array(probLeftClass)).sum())
+        RHSClassProb = 1 -((np.array(probRightClass)*np.array(probRightClass)).sum())
 
         return leftProb * LHSClassProb + rightProb * RHSClassProb
 
@@ -491,39 +528,41 @@ class TreeClassifier(TreeRegressor):
         """
         Select the best split point for a dataset
         """
-        # classes = list(set(row[-1] for row in data))
-        ######################
-        ### YOUR CODE HERE ###
-        ######################
-        #return Node(0.0)
-        # classValues = list(set(row[-1] for row in data))
-        mean = 999
-        balanceFeature, balanceValue, balanceScore, balanceGroup = 999, 999, 999, None
-        balanceSplit, balanceFeature = 0.0,0
+        classValues = list(set(row[-1] for row in data))
+
+        balanceFeature, balanceSplit, best_gini = None, None, 10000
         left_best = np.empty((1, data.shape[1]))
         right_best = np.empty((1, data.shape[1]))
 
         # remove 1 double compare
         for index in range(data.shape[1]-1):
-            for row in range(data.shape[0]):
-                groups = self.one_step_split(index, data[row, index], data)
-                checkMean = self.mean_squared_error(groups[0], groups[1])
-                if checkMean < mean:
-                    mean = checkMean
+            for row in np.unique(data[:, index]):
+                left_best = data[data[:, index] < row]
+                right_best = data[data[:, index] >= row]
+                if len(left_best) < 2 or len(right_best) < 2:
+                        continue
+                giniCheck = self.gini_index(left_best, right_best, classValues)
+                if giniCheck < best_gini:
+                    best_gini = giniCheck
                     balanceFeature = index
                     balanceSplit = row
-                    left_best = groups[0]
-                    right_best = groups[1]
-                    # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, groups
 
-       # {'index':balanceFeature, 'value':balanceValue, 'groups':balanceGroup} use these for helpers later
-        nodeLeft = Node(split_val=0, data=left_best, left=None, right=None)
-        nodeRight = Node(split_val=0, data=right_best, left=None, right=None)
+                    # balanceFeature, balanceValue, balanceScore, balanceGroup = index, row[index], mean, 
+
+        if balanceFeature is None:
+            classes, counts = np.unique(self.data[:, -1].astype(int), return_counts=True)
+            return Node(split_val=int(classes[np.argmax(counts)]), data=self.data)
+       # {'index':balanceFeature, 'value':balanceValue, '':balanceGroup} use these for helpers later
+        left_best = data[data[:, balanceFeature] < balanceSplit]
+        right_best = data[data[:, balanceFeature] >= balanceSplit]        
+        
+        nodeLeft = self.get_best_split(left_best)
+        nodeRight = self.get_best_split(right_best)
 
         # print("left", left_best)
         # print("right", right_best)
-        #print(data[int(balanceSplit),balanceFeature])
-        node = Node(data[int(balanceSplit), balanceFeature],
+        # print(data[int(balanceSplit),balanceFeature])
+        node = Node(balanceSplit,
                     data, nodeLeft, nodeRight)
         return node
 
@@ -592,8 +631,9 @@ if __name__ == "__main__":
     for depth in range(1, 5):
         regressor = TreeRegressor(data_regress, depth)
         classifier = TreeClassifier(data_regress, depth)
+        # print(regressor.data)
         tree = regressor.build_tree()
-        
+
         mse = 0.0
         for data_point in data_regress:
             mse += (
@@ -610,9 +650,9 @@ if __name__ == "__main__":
 
     # # SUB Q2
     # # Place the CSV file in the same directory as this notebook
-    # csvname = "new_circle_data.csv"
-    # data_class = np.loadtxt(csvname, delimiter=",")
-    # data_class = np.array([[x1, x2, y] for x1, x2, y in zip(*data_class)])
+    csvname = "new_circle_data.csv"
+    data_class = np.loadtxt(csvname, delimiter=",")
+    data_class = np.array([[x1, x2, y] for x1, x2, y in zip(*data_class)])
     # plt.figure()
     # plt.scatter(
     #     data_class[:, 0], data_class[:, 1], c=-data_class[:, 2], cmap="bwr"
@@ -621,17 +661,17 @@ if __name__ == "__main__":
     # plt.ylabel("Features, x2")
     # plt.show()
 
-    # accuracy_depths = []
-    # for depth in range(1, 8):
-    #     print(data_class)
-    #     tree = classifier.build_tree()
-    #     correct = 0.0
-    #     for data_point in data_class:
-    #         correct += float(
-    #             data_point[2]
-    #             == predict(tree, data_point, compare_node_with_threshold)
-    #         )
-    #     accuracy_depths.append(correct / len(data_class))
+    accuracy_depths = []
+    for depth in range(1, 8):
+        print(data_class)
+        tree = classifier.build_tree()
+        correct = 0.0
+        for data_point in data_class:
+            correct += float(
+                data_point[2]
+                == predict(tree, data_point, compare_node_with_threshold)
+            )
+        accuracy_depths.append(correct / len(data_class))
     # # Plot the MSE
     # plt.figure()
     # plt.plot(accuracy_depths)
