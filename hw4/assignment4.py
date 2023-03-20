@@ -115,6 +115,7 @@ def read_sat_image_data(file_path: str) -> pd.DataFrame:
       Input: filepath to a .csv file
       Output: Return a DataFrame with the data from the given csv file 
     '''
+    return pd.read_csv(file_path)
     ########################
     ## Your Solution Here ##
     ########################
@@ -125,6 +126,7 @@ def remove_nan(df: pd.DataFrame) -> pd.DataFrame:
     '''
       Remove nan values from the dataframe and return it
     '''
+    return df.dropna()
     ########################
     ## Your Solution Here ##
     ########################
@@ -137,21 +139,29 @@ def normalize_data(Xtrain: pd.DataFrame, Xtest: pd.DataFrame) -> (pd.DataFrame, 
       Use sklearn.preprocessing.StandardScaler library to normalize
       Return the results in the order Xtrain_norm, Xtest_norm
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
+    scaler = StandardScaler()
+    scaler.fit(Xtrain)
+    Xtrain_norm = pd.DataFrame(scaler.transform(Xtrain), columns=Xtrain.columns)
+    Xtest_norm = pd.DataFrame(scaler.transform(Xtest), columns=Xtest.columns)
+    return Xtrain_norm, Xtest_norm
+
 
 
 @typechecked
-def labels_to_binary(y: pd.DataFrame) -> pd.DataFrame:
+def labels_to_binary(df: pd.DataFrame) -> pd.DataFrame:
     '''
-    Make the lables [1,2,3,4,5] as 0 and [6] as 1
+    Make the lables [X1,X2,X3,X4,X5] as 0 and [X6] as 1
     Return the DataFrame 
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
-
+    df = df.replace(['X1','X2','X3','X4','X5'], 0)
+    df = df.replace(['X6'], 1)
+    # df['X1'] = 0
+    # df['X2'] = 0
+    # df['X3'] = 0
+    # df['X4'] = 0
+    # df['X5'] = 0
+    # df['X6'] = 1
+    return df
 
 ################
 ################
@@ -165,9 +175,23 @@ def cross_validate_c_vals(X: pd.DataFrame, y: pd.DataFrame, n_folds: int, c_vals
       Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
       More details about the imlementation are provided in the main function
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
+    kf = KFold(n_splits=n_folds)
+    ERRs = np.zeros((len(c_vals), len(d_vals), n_folds))
+    
+    for i, c in enumerate(c_vals):
+        for j, d in enumerate(d_vals):
+            for fold, (train_idx, test_idx) in enumerate(kf.split(X)):
+                clf = SVC(C=c, kernel='poly', degree=d, gamma='scale')
+                X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
+                X_test, y_test = X.iloc[test_idx], y.iloc[test_idx]
+                clf.fit(X_train, y_train)
+                y_pred = clf.predict(X_test)
+                ERRs[i, j, fold] = 1 - np.mean(y_pred == y_test)
+    
+    ERRAVGdc = np.mean(ERRs, axis=2)
+    ERRSTDdc = np.std(ERRs, axis=2)
+    
+    return ERRAVGdc, ERRSTDdc
 
 
 @typechecked
