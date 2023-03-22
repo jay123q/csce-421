@@ -59,7 +59,7 @@ def cost_function(w: float, b: float, X: np.array, y: np.array) -> float:
       y : target with shape (number_of_rows_in_dataframe, 1)
     Return the loss as a float data type. 
     '''
-    m = X.shape[0]
+    m = X.shape[1]
     z = np.dot(X, w) + b
     y_hat = sigmoid(z)
     J = (-1/m) * np.sum(y*np.log(y_hat) + (1-y)*np.log(1-y_hat))
@@ -89,17 +89,20 @@ def cross_entropy_optimizer(w: float, b: float, X: np.array, y: np.array, num_it
       "costs" list contains float type numbers  
     '''
     costs = []
+    J = 0
     m = X.shape[0]
     for i in range(num_iterations):
         z = np.dot(X, w) + b
         y_hat = sigmoid(z)
         dz = y_hat - y
         dw = (1/m) * np.dot(X.T, dz)
+        # print(type(np.dot(X.T, dz).item()))
         db = (1/m) * np.sum(dz)
-        w = w - alpha * dw
+        w = float(w - alpha * np.gradient(J))
         b = b - alpha * db
         J = cost_function(w, b, X, y)
         costs.append(J)
+
     return w, b, costs
 
 ################
@@ -153,15 +156,11 @@ def labels_to_binary(df: pd.DataFrame) -> pd.DataFrame:
     Make the lables [X1,X2,X3,X4,X5] as 0 and [X6] as 1
     Return the DataFrame 
     '''
-    df = df.replace(['X1','X2','X3','X4','X5'], 0)
-    df = df.replace(['X6'], 1)
-    # df['X1'] = 0
-    # df['X2'] = 0
-    # df['X3'] = 0
-    # df['X4'] = 0
-    # df['X5'] = 0
-    # df['X6'] = 1
+    df = df.replace([1,2,3,4,5], 0)
+    df = df.replace([6], 1)
     return df
+
+
 
 ################
 ################
@@ -175,7 +174,7 @@ def cross_validate_c_vals(X: pd.DataFrame, y: pd.DataFrame, n_folds: int, c_vals
       Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
       More details about the imlementation are provided in the main function
     '''
-    kf = KFold(n_splits=n_folds)
+    kf = StratifiedKFold(n_splits=n_folds)
     ERRs = np.zeros((len(c_vals), len(d_vals), n_folds))
     
     for i, c in enumerate(c_vals):
