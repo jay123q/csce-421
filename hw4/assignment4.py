@@ -89,18 +89,18 @@ def cross_entropy_optimizer(w: float, b: float, X: np.array, y: np.array, num_it
       "costs" list contains float type numbers  
     '''
     costs = []
-    J = 0
     m = X.shape[0]
     for i in range(num_iterations):
+        J = cost_function(w, b, X, y)
         z = np.dot(X, w) + b
         y_hat = sigmoid(z)
         dz = y_hat - y
         dw = (1/m) * np.dot(X.T, dz)
         # print(type(np.dot(X.T, dz).item()))
         db = (1/m) * np.sum(dz)
-        w = float(w - alpha * np.gradient(J))
+        w =  w - alpha * dw.item()
         b = b - alpha * db
-        J = cost_function(w, b, X, y)
+    
         costs.append(J)
 
     return w, b, costs
@@ -179,7 +179,7 @@ def cross_validate_c_vals(X: pd.DataFrame, y: pd.DataFrame, n_folds: int, c_vals
     
     for i, c in enumerate(c_vals):
         for j, d in enumerate(d_vals):
-            for fold, (train_idx, test_idx) in enumerate(kf.split(X)):
+            for fold, (train_idx, test_idx) in enumerate(kf.split(X,y)):
                 clf = SVC(C=c, kernel='poly', degree=d, gamma='scale')
                 X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
                 X_test, y_test = X.iloc[test_idx], y.iloc[test_idx]
