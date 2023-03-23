@@ -174,22 +174,36 @@ def cross_validate_c_vals(X: pd.DataFrame, y: pd.DataFrame, n_folds: int, c_vals
       Return the matrices (ERRAVGdc, ERRSTDdc) in the same order
       More details about the imlementation are provided in the main function
     '''
-    kf = StratifiedKFold(n_splits=n_folds)
-    ERRs = np.zeros((len(c_vals), len(d_vals), n_folds))
-    
+
+    # initalize variable with a fitted array to the vals
+    ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
+    ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
+
     for i, c in enumerate(c_vals):
         for j, d in enumerate(d_vals):
-            for fold, (train_idx, test_idx) in enumerate(kf.split(X,y)):
-                clf = SVC(C=c, kernel='poly', degree=d, gamma='scale')
-                X_train, y_train = X.iloc[train_idx], y.iloc[train_idx]
-                X_test, y_test = X.iloc[test_idx], y.iloc[test_idx]
+            errs = []
+            skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+            for train_index, test_index in skf.split(X, y):
+                X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+                y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+
+                # feature scaling
+                scaler = StandardScaler()
+                X_train = scaler.fit_transform(X_train)
+                X_test = scaler.transform(X_test)
+
+                # SVM model with polynomial kernel
+                clf = SVC(kernel='poly', C=c, degree=d, gamma='scale')
                 clf.fit(X_train, y_train)
                 y_pred = clf.predict(X_test)
-                ERRs[i, j, fold] = 1 - np.mean(y_pred == y_test)
-    
-    ERRAVGdc = np.mean(ERRs, axis=2)
-    ERRSTDdc = np.std(ERRs, axis=2)
-    
+
+                # calculate mean absolute error and store the error
+                errs.append(mean_absolute_error(y_test, y_pred))
+
+            # evaluate the average mean absolute error and standard deviation from stored errors
+            ERRAVGdc[i][j] = np.mean(errs)
+            ERRSTDdc[i][j] = np.std(errs)
+
     return ERRAVGdc, ERRSTDdc
 
 
@@ -224,7 +238,68 @@ def evaluate_c_d_pairs(X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.
     ########################
     ## Your Solution Here ##
     ########################
-
+    ERRAVGdcTEST = np.zeros(len(d_vals))
+    SuppVect = np.zeros(len(d_vals))
+    vmd = np.zeros(len(d_vals))
+    MarginT = np.zeros(len(d_vals))
+    test_errors = []
+    support_vectors = []
+    violating_support_vectors = []
+    hyperplane_margins = []
+    for i, d in enumerate(d_vals):
+        errors = []
+        num_support_vectors = []
+        num_violating_support_vectors = []
+        margins = []
+        for c in c_vals:
+            skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
+            test_errors = []
+            support_vectors = []
+            violating_support_vectors = []
+            hyperplane_margins = []            
+            for train_index, test_index in skf.split(X, y):
+                X_train, X_test = X.iloc[train_index], X.iloc[test_index]
+                y_train, y_test = y.iloc[train_index], y.iloc[test_index]
+                
+                # preprocessing
+                scaler = StandardScaler()
+                X_train = scaler.fit_transform(X_train)
+                X_test = scaler.transform(X_test)
+                
+                # training
+                clf = SVC(C=c, kernel='poly', degree=d, gamma='auto', coef0=1)
+                clf.fit(X_train, y_train)
+                
+                # prediction
+                y_pred = clf.predict(X_test)
+                test_error = mean_absolute_error(y_test, y_pred)
+                test_errors.append(test_error)
+                
+                # support vectors
+                num_support_vectors.append(len(clf.support_))
+                
+                # violating support vectors
+                y_pred_train = clf.predict(X_train)
+                y_pred_test = clf.predict(X_test)
+                num_violating_support_vectors.append(np.sum(y_pred_train != y_train) + np.sum(y_pred_test != y_test))
+                
+                # margins
+                margin = np.mean(clf.decision_function(X_test) * y_test)
+                margins.append(margin)
+            
+            # average over the 10 folds
+            errors.append(np.mean(test_errors))
+            support_vectors.append(np.mean(num_support_vectors))
+            violating_support_vectors.append(np.mean(num_violating_support_vectors))
+            hyperplane_margins.append(np.mean(margins))
+        
+        # update the output arrays
+        ERRAVGdcTEST[i] = np.mean(errors)
+        SuppVect[i] = np.mean(support_vectors)
+        vmd[i] = np.mean(violating_support_vectors)
+        MarginT[i] = np.mean(hyperplane_margins)
+    
+    return ERRAVGdcTEST, SuppVect, vmd, MarginT
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST: np.array, d_vals: np.array) -> None:
