@@ -57,7 +57,7 @@ def cost_function(w: float, b: float, X: np.array, y: np.array) -> float:
       b : bias
       X : input  with shape (number_of_rows_in_dataframe, 1)
       y : target with shape (number_of_rows_in_dataframe, 1)
-    Return the loss as a float data type. 
+    Return the loss as a float data type.
     '''
     m = X.shape[1]
     z = np.dot(X, w) + b
@@ -77,16 +77,16 @@ def cross_entropy_optimizer(w: float, b: float, X: np.array, y: np.array, num_it
         b              : initial bias
         X              : input  with shape (number_of_rows_in_dataframe, 1)
         y              : target with shape (number_of_rows_in_dataframe, 1)
-        num_iterations : number of iterations 
+        num_iterations : number of iterations
         alpha          : Learning rate
 
-      Task: Iterate for given number of iterations and find optimal weight and bias 
+      Task: Iterate for given number of iterations and find optimal weight and bias
       while also noting the change in cost/ loss after every iteration
 
       Make use of the cost_function() above
 
       Return (updated weight, updated bias, list of "costs" after each iteration) in this order
-      "costs" list contains float type numbers  
+      "costs" list contains float type numbers
     '''
     costs = []
     m = X.shape[0]
@@ -98,9 +98,9 @@ def cross_entropy_optimizer(w: float, b: float, X: np.array, y: np.array, num_it
         dw = (1/m) * np.dot(X.T, dz)
         # print(type(np.dot(X.T, dz).item()))
         db = (1/m) * np.sum(dz)
-        w =  w - alpha * dw.item()
+        w = w - alpha * dw.item()
         b = b - alpha * db
-    
+
         costs.append(J)
 
     return w, b, costs
@@ -116,7 +116,7 @@ def cross_entropy_optimizer(w: float, b: float, X: np.array, y: np.array, num_it
 def read_sat_image_data(file_path: str) -> pd.DataFrame:
     '''
       Input: filepath to a .csv file
-      Output: Return a DataFrame with the data from the given csv file 
+      Output: Return a DataFrame with the data from the given csv file
     '''
     return pd.read_csv(file_path)
     ########################
@@ -144,22 +144,21 @@ def normalize_data(Xtrain: pd.DataFrame, Xtest: pd.DataFrame) -> (pd.DataFrame, 
     '''
     scaler = StandardScaler()
     scaler.fit(Xtrain)
-    Xtrain_norm = pd.DataFrame(scaler.transform(Xtrain), columns=Xtrain.columns)
+    Xtrain_norm = pd.DataFrame(
+        scaler.transform(Xtrain), columns=Xtrain.columns)
     Xtest_norm = pd.DataFrame(scaler.transform(Xtest), columns=Xtest.columns)
     return Xtrain_norm, Xtest_norm
-
 
 
 @typechecked
 def labels_to_binary(df: pd.DataFrame) -> pd.DataFrame:
     '''
     Make the lables [X1,X2,X3,X4,X5] as 0 and [X6] as 1
-    Return the DataFrame 
+    Return the DataFrame
     '''
-    df = df.replace([1,2,3,4,5], 0)
+    df = df.replace([1, 2, 3, 4, 5], 0)
     df = df.replace([6], 1)
     return df
-
 
 
 ################
@@ -175,34 +174,34 @@ def cross_validate_c_vals(X: pd.DataFrame, y: pd.DataFrame, n_folds: int, c_vals
       More details about the imlementation are provided in the main function
     '''
 
-    # initalize variable with a fitted array to the vals
     ERRAVGdc = np.zeros((len(c_vals), len(d_vals)))
     ERRSTDdc = np.zeros((len(c_vals), len(d_vals)))
 
+    skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
+    # for every i, given a c from array
     for i, c in enumerate(c_vals):
+        # for every j given a d from array
         for j, d in enumerate(d_vals):
             errs = []
-            skf = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
             for train_index, test_index in skf.split(X, y):
                 X_train, X_test = X.iloc[train_index], X.iloc[test_index]
                 y_train, y_test = y.iloc[train_index], y.iloc[test_index]
 
-                # feature scaling
+              # take the feaatures and move them up
                 scaler = StandardScaler()
                 X_train = scaler.fit_transform(X_train)
                 X_test = scaler.transform(X_test)
 
-                # SVM model with polynomial kernel
                 clf = SVC(kernel='poly', C=c, degree=d, gamma='scale')
-                clf.fit(X_train, y_train)
+                clf.fit(X_train, y_train.values.ravel())
                 y_pred = clf.predict(X_test)
 
-                # calculate mean absolute error and store the error
+
                 errs.append(mean_absolute_error(y_test, y_pred))
 
-            # evaluate the average mean absolute error and standard deviation from stored errors
-            ERRAVGdc[i][j] = np.mean(errs)
-            ERRSTDdc[i][j] = np.std(errs)
+            # store errrors
+            ERRAVGdc[i, j] = np.mean(errs)
+            ERRSTDdc[i, j] = np.std(errs)
 
     return ERRAVGdc, ERRSTDdc
 
@@ -213,9 +212,15 @@ def plot_cross_val_err_vs_c(ERRAVGdc: np.array, ERRSTDdc: np.array, c_vals: np.a
      Please write the code in below block to generate the graphs as described in the question.
      Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
     '''
-    ########################
-    ## Your Solution Here ##
-    ########################
+    fig, ax = plt.subplots()
+    for i, d in enumerate(d_vals):
+        ax.errorbar(c_vals, ERRAVGdc[:,i], yerr=ERRSTDdc[:,i], label=f"Degree {d}")
+    ax.set_xscale("log")
+    ax.set_xlabel("C values")
+    ax.set_ylabel("Mean Absolute Error")
+    ax.set_title("Cross-Validation Errors vs. C values")
+    ax.legend()
+    plt.show()
 
 ################
 ################
@@ -238,68 +243,28 @@ def evaluate_c_d_pairs(X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.
     ########################
     ## Your Solution Here ##
     ########################
-    ERRAVGdcTEST = np.zeros(len(d_vals))
-    SuppVect = np.zeros(len(d_vals))
-    vmd = np.zeros(len(d_vals))
-    MarginT = np.zeros(len(d_vals))
-    test_errors = []
-    support_vectors = []
-    violating_support_vectors = []
-    hyperplane_margins = []
-    for i, d in enumerate(d_vals):
-        errors = []
-        num_support_vectors = []
-        num_violating_support_vectors = []
-        margins = []
-        for c in c_vals:
-            skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=42)
-            test_errors = []
-            support_vectors = []
-            violating_support_vectors = []
-            hyperplane_margins = []            
-            for train_index, test_index in skf.split(X, y):
-                X_train, X_test = X.iloc[train_index], X.iloc[test_index]
-                y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-                
-                # preprocessing
-                scaler = StandardScaler()
-                X_train = scaler.fit_transform(X_train)
-                X_test = scaler.transform(X_test)
-                
-                # training
-                clf = SVC(C=c, kernel='poly', degree=d, gamma='auto', coef0=1)
-                clf.fit(X_train, y_train)
-                
-                # prediction
-                y_pred = clf.predict(X_test)
-                test_error = mean_absolute_error(y_test, y_pred)
-                test_errors.append(test_error)
-                
-                # support vectors
-                num_support_vectors.append(len(clf.support_))
-                
-                # violating support vectors
-                y_pred_train = clf.predict(X_train)
-                y_pred_test = clf.predict(X_test)
-                num_violating_support_vectors.append(np.sum(y_pred_train != y_train) + np.sum(y_pred_test != y_test))
-                
-                # margins
-                margin = np.mean(clf.decision_function(X_test) * y_test)
-                margins.append(margin)
-            
-            # average over the 10 folds
-            errors.append(np.mean(test_errors))
-            support_vectors.append(np.mean(num_support_vectors))
-            violating_support_vectors.append(np.mean(num_violating_support_vectors))
-            hyperplane_margins.append(np.mean(margins))
-        
-        # update the output arrays
-        ERRAVGdcTEST[i] = np.mean(errors)
-        SuppVect[i] = np.mean(support_vectors)
-        vmd[i] = np.mean(violating_support_vectors)
-        MarginT[i] = np.mean(hyperplane_margins)
+
+    ERRAVGdcTEST = []
+    SuppVect = []
+    vmd = []
+    MarginT = []
     
-    return ERRAVGdcTEST, SuppVect, vmd, MarginT
+    for c, d in zip(c_vals, d_vals):
+        svm = SVC(C=c, kernel="poly", degree=d)
+        svm.fit(X_train, y_train.values.ravel())
+        y_pred = svm.predict(X_test)
+        
+        ERRAVGdcTEST.append(mean_absolute_error(y_test, y_pred))
+
+        SuppVect.append(np.mean(svm.n_support_))
+
+      # take the decision value and see if it fits in the boundary function
+        vmd.append(np.mean(np.abs(svm.decision_function(X_train)) < -1))
+        
+        MarginT.append(np.mean(np.abs(svm.decision_function(X_train))))
+    
+    return np.array(ERRAVGdcTEST), np.array(SuppVect), np.array(vmd), np.array(MarginT)
+
 
 @typechecked
 def plot_test_errors(ERRAVGdcTEST: np.array, d_vals: np.array) -> None:
@@ -307,6 +272,12 @@ def plot_test_errors(ERRAVGdcTEST: np.array, d_vals: np.array) -> None:
      Please write the code in below block to generate the graphs as described in the question.
      Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
     '''
+    plt.plot(d_vals, ERRAVGdcTEST, 'bo-', linewidth=2, markersize=8)
+    plt.title('Test Error vs. Polynomial Degree')
+    plt.xlabel('Degree')
+    plt.ylabel('Test Error')
+    plt.grid(True)
+    plt.show()
     ########################
     ## Your Solution Here ##
     ########################
@@ -324,6 +295,12 @@ def plot_avg_support_vec(SuppVect: np.array, d_vals: np.array) -> None:
      Please write the code in below block to generate the graphs as described in the question.
      Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
     '''
+    fig, ax = plt.subplots()
+    ax.plot(d_vals, SuppVect)
+    ax.set_xlabel('Degree of Polynomial Kernel')
+    ax.set_ylabel('Average Number of Support Vectors')
+    ax.set_title('Average Number of Support Vectors vs Degree of Polynomial Kernel')
+    plt.show()
     ########################
     ## Your Solution Here ##
     ########################
@@ -335,6 +312,11 @@ def plot_avg_violating_support_vec(vmd: np.array, d_vals: np.array) -> None:
      Please write the code in below block to generate the graphs as described in the question.
      Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
     '''
+    plt.plot(d_vals, vmd, 'bo-')
+    plt.xlabel('Degree of Polynomial Kernel')
+    plt.ylabel('Average Number of Violating Support Vectors')
+    plt.title('Average Number of Violating Support Vectors vs. Degree')
+    plt.show()
     ########################
     ## Your Solution Here ##
     ########################
@@ -352,6 +334,11 @@ def plot_avg_hyperplane_margins(MarginT: np.array, d_vals: np.array) -> None:
      Please write the code in below block to generate the graphs as described in the question.
      Note that the code will not be graded, but the graphs submitted in the report will be evaluated.
     '''
+    plt.plot(d_vals, MarginT)
+    plt.title('Average Hyperplane Margins vs. Degree of Polynomial Kernel')
+    plt.xlabel('Degree of Polynomial Kernel')
+    plt.ylabel('Average Hyperplane Margins')
+    plt.show()
     ########################
     ## Your Solution Here ##
     ########################
@@ -483,6 +470,8 @@ if __name__ == "__main__":
     # Q3 c
     ################
     ################
+    print("AVC Dc ", ERRAVGdc)
+    print(" STDdc ", ERRSTDdc)
     d_vals = [1, 2, 3, 4]
     n_folds = 5
     '''
@@ -490,7 +479,7 @@ if __name__ == "__main__":
   '''
     ########################
     ## Your Solution Here ##
-    new_c_vals = []
+    new_c_vals = [0.16531006, 0.08375811, 0.05803359, 0.05802966]
     ########################
 
     '''
