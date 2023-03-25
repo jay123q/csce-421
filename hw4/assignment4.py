@@ -248,21 +248,28 @@ def evaluate_c_d_pairs(X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.
     SuppVect = []
     vmd = []
     MarginT = []
-    
+    hpavg = []
+
     for c, d in zip(c_vals, d_vals):
         svm = SVC(C=c, kernel="poly", degree=d)
         svm.fit(X_train, y_train.values.ravel())
         y_pred = svm.predict(X_test)
-        
-        ERRAVGdcTEST.append(mean_absolute_error(y_test, y_pred))
 
+        ERRAVGdcTEST.append(mean_absolute_error(y_test, y_pred))
         SuppVect.append(np.mean(svm.n_support_))
 
-      # take the decision value and see if it fits in the boundary function
-        vmd.append(np.mean(np.abs(svm.decision_function(X_train)) < -1))
-        
+        # calculate the decision values for all training samples
+        decision_values = np.abs(svm.decision_function(X_train))
+
+        # calculate the percentage of decision values within the boundary for each support vector
+        sv_percentages = np.mean(np.abs(decision_values) < 1, axis=0)
+
+        # calculate the mean percentage of decision values for all support vectors
+        vmd.append(np.mean(sv_percentages))
+
         MarginT.append(np.mean(np.abs(svm.decision_function(X_train))))
-    
+
+
     return np.array(ERRAVGdcTEST), np.array(SuppVect), np.array(vmd), np.array(MarginT)
 
 
@@ -480,6 +487,7 @@ if __name__ == "__main__":
     ########################
     ## Your Solution Here ##
     new_c_vals = [0.16531006, 0.08375811, 0.05803359, 0.05802966]
+    new_c_vals = [10,100,100,100]
     ########################
 
     '''
