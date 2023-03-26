@@ -270,7 +270,7 @@ def evaluate_c_d_pairs(X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.
         MarginT.append(np.mean(np.abs(svm.decision_function(X_train))))
 
 
-    return np.array(ERRAVGdcTEST), np.array(SuppVect), np.array(vmd), np.array([0,0,0,0])
+    return np.array(ERRAVGdcTEST), np.array(SuppVect), np.array(vmd), np.empty(len(d_vals)) 
 
 
 @typechecked
