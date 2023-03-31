@@ -35,20 +35,37 @@ from typeguard import typechecked
 
 
 @typechecked
-def qa1_load(folder_path:str) -> Tuple[np.ndarray, np.ndarray]:
+def qa1_load(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
     """
     Returns the dataset (tuple of x, y the label).
 
     x should be of shape [165, 243 * 320]
     label can be extracted from the subject number in filename. ('subject01' -> '01 as label)
     """
-    os.chdir("/auto/source/data")
-    data = pd.read_csv(folder_path)
-    label = data['subject01']
-    return data, label
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    # Get list of image file names in the folder
+    # yo I cannot understand glob glob for the life of me but I found the referencce here 
+    # https://docs.python.org/3/library/glob.html
+    # combine all names in the folder path wiht the ending .png
+    file_names = glob.glob(os.path.join(folder_path, '*.png'))
+
+    # Initialize arrays to store data and labels
+    x = np.empty((len(file_names), 243 * 320))
+    y = np.empty(len(file_names), dtype=int)
+
+    # Read images and extract labels
+    for i, file_path in enumerate(file_names):
+        # Read image and convert to grayscale
+        img = mpimg.imread(file_path)
+        img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+
+        # Flatten image into a 1D array and add to x
+        x[i] = img.reshape(-1)
+
+        # Extract label from file name
+        label = int(file_path.split('/')[-1].split('.')[0][7:])
+        y[i] = label
+
+    return x, y
 
 @typechecked
 def qa2_preprocess(dataset:np.ndarray) -> np.ndarray:
