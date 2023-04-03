@@ -49,22 +49,23 @@ def qa1_load(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
     file_names = glob.glob(os.path.join(folder_path, '*.png'))
 
     # Initialize arrays to store data and labels
-    x = np.empty((len(file_names), 243 * 320))
+    x = np.empty((165, 243 * 320))
     y = np.empty(len(file_names), dtype=int)
 
     # Read images and extract labels
-    for i, file_path in enumerate(file_names):
+    for file_path in enumerate(file_names):
         # Read image and convert to grayscale
         img = mpimg.imread(file_path)
         img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
 
         # Flatten image into a 1D array and add to x
-        x[i] = img.reshape(-1)
+        np.append(x,img.reshape(-1))
 
         # Extract label from file name
         label = int(file_path.split('/')[-1].split('.')[0][7:])
-        y[i] = label
+        np.append(y,label)
 
+    x[0] = 165
     return x, y
 
 @typechecked
