@@ -46,27 +46,27 @@ def qa1_load(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
     # yo I cannot understand glob glob for the life of me but I found the referencce here 
     # https://docs.python.org/3/library/glob.html
     # combine all names in the folder path wiht the ending .png
-    file_names = glob.glob(os.path.join(folder_path, '*.png'))
-
+    # file_names = sorted(glob.glob(os.path.join(folder_path, '*.png')))
+    # print(file_names)
+    file_names = sorted(os.listdir(folder_path))
     # Initialize arrays to store data and labels
-    x = np.empty((165, 243 * 320))
-    y = np.empty(len(file_names), dtype=int)
-
+    # x = np.empty((165, 243 * 320))
+    # y = np.empty(len(file_names), dtype=int)
+    x,y = [],[]
     # Read images and extract labels
-    for file_path in enumerate(file_names):
+    for file_path in file_names:
         # Read image and convert to grayscale
         img = mpimg.imread(file_path)
-        img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
-
-        # Flatten image into a 1D array and add to x
-        np.append(x,img.reshape(-1))
-
-        # Extract label from file name
-        label = int(file_path.split('/')[-1].split('.')[0][7:])
-        np.append(y,label)
-
-    x[0] = 165
-    return x, y
+        # img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
+        # np.append(x,img.reshape(-1))
+        # np.append(y,int(file_path[7:]))
+        # x.append(img.reshape(-1))
+        y.append(file_path[7:])
+        x.append(img.flatten())
+    # x[0] = 165
+    x = np.array(x)
+    
+    return x, np.array(y)
 
 @typechecked
 def qa2_preprocess(dataset:np.ndarray) -> np.ndarray:
