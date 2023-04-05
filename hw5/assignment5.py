@@ -140,6 +140,7 @@ def qd1_project(dataset:np.ndarray, pca:PCA) -> np.ndarray:
     Return the projection of the dataset 
     NOTE: TO TEST CORRECTNESS, please submit to autograder
     """
+    return pca.transform(dataset)
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -150,6 +151,7 @@ def qd2_reconstruct(projected_input:np.ndarray, pca:PCA) -> np.ndarray:
     Return the reconstructed image given the pca components
     NOTE: TO TEST CORRECTNESS, please submit to autograder
     """
+    return pca.inverse_transform(projected_input)
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -172,7 +174,44 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    
+    # Select 5 values of k uniformly distributed in the range [1, 100]
+
+    k_values = sorted([random.uniform(1, 101) for i in range(5)])
+
+    # Initialize variables to keep track of best_k and highest accuracy
+    best_k = 0
+    highest_accuracy = 0.0
+
+    # Loop over the k values
+    for k in k_values:
+        # print(k)
+        # Select the first k PCA components
+        pca_components = pca.components_[:int(k)]
+
+        # Project the training data onto the first k PCA components
+        projected_trainX = trainX.dot(pca_components.T)
+
+        # Initialize a support vector machine with a linear kernel
+        svm = SVC(kernel='linear')
+
+        # Use 5-fold cross-validation to train the SVM and compute the accuracy
+        kf = StratifiedKFold(n_splits=5)
+        accuracies = []
+        for train_idx, test_idx in kf.split(projected_trainX, trainY):
+            X_train, X_test = projected_trainX[train_idx], projected_trainX[test_idx]
+            y_train, y_test = trainY[train_idx], trainY[test_idx]
+            svm.fit(X_train, y_train)
+            y_pred = svm.predict(X_test)
+            accuracy = accuracy_score(y_test, y_pred)
+            accuracies.append(accuracy)
+        avg_accuracy = sum(accuracies) / len(accuracies)
+
+        # If the current accuracy is the highest, update best_k and highest_accuracy
+        if avg_accuracy > highest_accuracy:
+            best_k = k
+            highest_accuracy = avg_accuracy
+
+    return int(best_k), highest_accuracy
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -186,9 +225,24 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    k_values = sorted([random.uniform(1, 101) for i in range(5)])
+    scaler = StandardScaler()
+    trainX_scaled = scaler.fit_transform(trainX)
+    trainX_pca = pca.transform(trainX_scaled)
+
+    best_k = None
+    best_score = -1
+
+    for k in k_values:
+        selected_components = trainX_pca[:, :k]
+        clf = Lasso(cv=5, random_state=42)
+        clf.fit(selected_components, trainY)
+        score = clf.score(selected_components, trainY)
+        if score > best_score:
+            best_score = score
+            best_k = k
+
+    return best_k, best_score
 
 
 
