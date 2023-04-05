@@ -56,7 +56,7 @@ def qa1_load(folder_path: str) -> Tuple[np.ndarray, np.ndarray]:
     # Read images and extract labels
     for file_path in file_names:
         # Read image and convert to grayscale
-        img = mpimg.imread(file_path)
+        img = mpimg.imread(os.path.join(folder_path , file_path))
         # img = np.dot(img[..., :3], [0.2989, 0.5870, 0.1140])
         # np.append(x,img.reshape(-1))
         # np.append(y,int(file_path[7:]))
@@ -75,15 +75,11 @@ def qa2_preprocess(dataset:np.ndarray) -> np.ndarray:
 
     hint: consider using preprocessing.MinMaxScaler
     """
-    return dataset.dropna()   
+    scaler = preprocessing.MinMaxScaler()
+    dataset_scaled = scaler.fit_transform(dataset)
+    return dataset_scaled
 
-    # df = df.drop(["NewLeague", "Player"], axis='columns')
-    # nonnumericalColumn = df.select_dtypes(exclude=['int64', 'float64'])
-    # wholeColumn = df.select_dtypes(include=['int64', 'float64'])
-    # dummy = pd.get_dummies(nonnumericalColumn)
-    # wholeFeature = pd.concat([dummy, wholeColumn], axis=1)
 
-    # return wholeFeature, labelColumn.replace({'A': 0, 'N': 1})
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -95,7 +91,11 @@ def qa3_calc_eig_val_vec(dataset:np.ndarray, k:int)-> Tuple[PCA, np.ndarray, np.
     Use PCA as imported in the code to create an instance
     return them as tuple PCA, eigen_value, eigen_vector
     """
-
+    pca = PCA(n_components=k)
+    pca.fit(dataset)
+    eigen_values = pca.explained_variance_
+    eigen_vectors = pca.components_
+    return pca, eigen_values, eigen_vectors
 
 
     ######################
@@ -116,6 +116,11 @@ def qc1_reshape_images(pca:PCA, dim_x = 243, dim_y = 320) -> np.ndarray:
     """
     reshape the pca components into the shape of original image so that it can be visualized
     """
+    # Get the PCA components
+    pca_components = pca.components_
+
+    # Reshape the PCA components into the shape of the original image
+    return pca_components.reshape((-1, dim_x, dim_y))
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -167,6 +172,7 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
+    
     ######################
     ### YOUR CODE HERE ###
     ######################
