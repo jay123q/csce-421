@@ -234,15 +234,15 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
     best_score = -1
 
     for k in k_values:
-        selected_components = trainX_pca[:, :k]
-        clf = Lasso(cv=5, random_state=42)
+        selected_components = trainX_pca[:, :int(k)]
+        clf = Lasso()
         clf.fit(selected_components, trainY)
         score = clf.score(selected_components, trainY)
         if score > best_score:
             best_score = score
             best_k = k
 
-    return best_k, best_score
+    return int(best_k), best_score
 
 
 
