@@ -198,6 +198,8 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
         kf = StratifiedKFold(n_splits=5)
         accuracies = []
         for train_idx, test_idx in kf.split(projected_trainX, trainY):
+            # just like hw 3
+            # break up into boxes, predict on some, score, find acc
             X_train, X_test = projected_trainX[train_idx], projected_trainX[test_idx]
             y_train, y_test = trainY[train_idx], trainY[test_idx]
             svm.fit(X_train, y_train)
@@ -225,15 +227,18 @@ def qe2_lasso(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float
 
     Hint: you can pick 5 `k' values uniformly distributed
     """
+    best_k = None
+    best_score = -1
+
+
     k_values = sorted([random.uniform(1, 101) for i in range(5)])
     scaler = StandardScaler()
     trainX_scaled = scaler.fit_transform(trainX)
     trainX_pca = pca.transform(trainX_scaled)
 
-    best_k = None
-    best_score = -1
 
     for k in k_values:
+        # we are paritioning k to get the parts out of it
         selected_components = trainX_pca[:, :int(k)]
         clf = Lasso()
         clf.fit(selected_components, trainY)
