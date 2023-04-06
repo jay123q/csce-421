@@ -93,9 +93,8 @@ def qa3_calc_eig_val_vec(dataset:np.ndarray, k:int)-> Tuple[PCA, np.ndarray, np.
     """
     pca = PCA(n_components=k)
     pca.fit(dataset)
-    eigen_values = pca.explained_variance_
-    eigen_vectors = pca.components_
-    return pca, eigen_values, eigen_vectors
+
+    return pca, pca.explained_variance_, pca.components_
 
 
     ######################
@@ -107,6 +106,33 @@ def qb_plot_written(eig_values:np.ndarray):
     No structure is required for this question. It does not have to return anything.
     Use this function to produce plots
     """
+    # Calculate total sum of eigenvalues
+    total_energy = np.sum(eig_values)
+
+    # Calculate cumulative sum of eigenvalues
+    cum_sum = np.cumsum(eig_values)
+
+    # Calculate percentage of energy captured by each component
+    energy_pct = cum_sum / total_energy * 100
+
+    # Plot the curve
+    plt.plot(np.arange(1, len(eig_values) + 1), eig_values, label='Eigenvalues')
+
+    # Plot the line at 50% energy
+    plt.axhline(y=total_energy / 2, color='r', linestyle='--', label='50% Energy')
+
+    # Plot the vertical line indicating the number of components needed to capture 50% of the energy
+    k = np.argmax(cum_sum >= total_energy / 2) + 1
+    plt.axvline(x=k, color='g', linestyle='--', label='{} Components for 50% Energy'.format(k))
+
+    # Set the plot title and axis labels
+    plt.title('Eigenvalues vs. Number of Components')
+    plt.xlabel('Number of Components')
+    plt.ylabel('Eigenvalues')
+
+    # Show the legend and plot
+    plt.legend()
+    plt.show()
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -130,6 +156,16 @@ def qc2_plot(org_dim_eig_faces:np.ndarray):
     No structure is required for this question. It does not have to return anything.
     Use this function to produce plots
     """
+    fig, ax = plt.subplots(nrows=2, ncols=5, figsize=(15, 6))
+    fig.suptitle('10 Eigenfaces')
+
+    for i in range(2):
+        for j in range(5):
+            idx = i * 5 + j
+            ax[i, j].plot(org_dim_eig_faces[:, :, idx], cmap='gray')
+            ax[i, j].axis('off')
+
+    plt.show()
     ######################
     ### YOUR CODE HERE ###
     ######################
@@ -156,14 +192,48 @@ def qd2_reconstruct(projected_input:np.ndarray, pca:PCA) -> np.ndarray:
     ### YOUR CODE HERE ###
     ######################
 
+def custom_qd3_reconstruct(org_img:np.ndarray, pca:PCA):
+    """
+    Simplify logic by calling other functions
+    """
+
+    projected_input = qd1_project(org_img.reshape(1, -1),pca)
+    reconstructed_input = qd2_reconstruct(projected_input,pca)
+    reconstructed_input = reconstructed_input.reshape(org_img.shape)
+    
+    return reconstructed_input
+
+
 def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     """
-    No structure is required for this question. It does not have to return anything.
-    Use this function to produce plots. You can use other functions that you coded up for the assignment
+    Visualize the reconstructed images using 1, 10, 20, 30, 40, 50 components
     """
-    ######################
-    ### YOUR CODE HERE ###
-    ######################
+    # Select a couple of images from the data
+    img1 = dataset[1]
+    img2 = dataset[3]
+    
+    # Reconstruct images using different numbers of components
+    components = [1, 10, 20, 30, 40, 50]
+    reconstructed_imgs1 = [custom_qd3_reconstruct(img1, pca.set_params(n_components=k)) for k in components]
+    reconstructed_imgs2 = [custom_qd3_reconstruct(img2, pca.set_params(n_components=k)) for k in components]
+
+    # # Visualize reconstructed images
+    # fig, axs = plt.subplots(2, ncols=len(components), figsize=(20, 6))
+    
+    # for i, k in enumerate(components):
+    #     axs[0, i].imshow(img1[i].reshape(dim_x, dim_y), cmap='gray')
+    #     axs[0, i].set_title(f'Old Image k = {k}')
+    #     axs[1, i].imshow(img2[i].reshape(dim_x, dim_y), cmap='gray')
+    #     axs[1, i].set_title(f'Old Image k = {k}')
+    # fig, axs = plt.subplots(nrows=2, ncols=len(components), figsize=(20, 6))
+    
+    for i, k in enumerate(components):
+        axs[0, i].imshow(reconstructed_imgs1[i].reshape(dim_x, dim_y), cmap='gray')
+        axs[0, i].set_title(f'k = {k}')
+        axs[1, i].imshow(reconstructed_imgs2[i].reshape(dim_x, dim_y), cmap='gray')
+        axs[1, i].set_title(f'k = {k}')
+    
+    plt.show()
 
 @typechecked
 def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
@@ -177,8 +247,6 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
     # Select 5 values of k uniformly distributed in the range [1, 100]
 
     k_values = sorted([random.uniform(1, 101) for i in range(5)])
-
-    # Initialize variables to keep track of best_k and highest accuracy
     best_k = 0
     highest_accuracy = 0.0
 
@@ -187,13 +255,9 @@ def qe1_svm(trainX:np.ndarray, trainY:np.ndarray, pca:PCA) -> Tuple[int, float]:
         # print(k)
         # Select the first k PCA components
         pca_components = pca.components_[:int(k)]
-
         # Project the training data onto the first k PCA components
         projected_trainX = trainX.dot(pca_components.T)
-
-        # Initialize a support vector machine with a linear kernel
         svm = SVC(kernel='linear')
-
         # Use 5-fold cross-validation to train the SVM and compute the accuracy
         kf = StratifiedKFold(n_splits=5)
         accuracies = []
@@ -257,11 +321,11 @@ if __name__ == "__main__":
     dataset = qa2_preprocess(faces)
     pca, eig_values, eig_vectors = qa3_calc_eig_val_vec(dataset, len(dataset))
 
-    qb_plot_written(eig_values)
+    # qb_plot_written(eig_values)
 
     num = len(dataset)
     org_dim_eig_faces = qc1_reshape_images(pca)
-    qc2_plot(org_dim_eig_faces)
+    # qc2_plot(org_dim_eig_faces)
 
     qd3_visualize(dataset, pca)
     best_k, result = qe1_svm(dataset, y_target, pca)
