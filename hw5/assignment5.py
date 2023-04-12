@@ -192,11 +192,12 @@ def qd2_reconstruct(projected_input:np.ndarray, pca:PCA) -> np.ndarray:
     ### YOUR CODE HERE ###
     ######################
 
-def custom_qd3_reconstruct(org_img:np.ndarray, pca:PCA):
+def custom_qd3_reconstruct(dataset , org_img:np.ndarray, pca:PCA):
     """
     Simplify logic by calling other functions
     """
-
+    # pca = PCA(n_components=comp)
+    pca.fit(dataset)
     projected_input = qd1_project(org_img.reshape(1, -1),pca)
     reconstructed_input = qd2_reconstruct(projected_input,pca)
     reconstructed_input = reconstructed_input.reshape(org_img.shape)
@@ -212,20 +213,15 @@ def qd3_visualize(dataset:np.ndarray, pca:PCA, dim_x = 243, dim_y = 320):
     img1 = dataset[1]
     img2 = dataset[3]
     
-    # Reconstruct images using different numbers of components
     components = [1, 10, 20, 30, 40, 50]
-    reconstructed_imgs1 = [custom_qd3_reconstruct(img1, pca.set_params(n_components=k)) for k in components]
-    reconstructed_imgs2 = [custom_qd3_reconstruct(img2, pca.set_params(n_components=k)) for k in components]
+    # Reconstruct images using different numbers of components
+    pca = PCA(n_components=len(components))
 
-    # # Visualize reconstructed images
-    # fig, axs = plt.subplots(2, ncols=len(components), figsize=(20, 6))
-    
-    # for i, k in enumerate(components):
-    #     axs[0, i].imshow(img1[i].reshape(dim_x, dim_y), cmap='gray')
-    #     axs[0, i].set_title(f'Old Image k = {k}')
-    #     axs[1, i].imshow(img2[i].reshape(dim_x, dim_y), cmap='gray')
-    #     axs[1, i].set_title(f'Old Image k = {k}')
-    # fig, axs = plt.subplots(nrows=2, ncols=len(components), figsize=(20, 6))
+    reconstructed_imgs1 = [custom_qd3_reconstruct(dataset , img1, pca.set_params(n_components = k) ) for k in components]
+    reconstructed_imgs2 = [custom_qd3_reconstruct(dataset, img2, pca.set_params(n_components = k) ) for k in components]
+
+
+    fig, axs = plt.subplots(nrows=2, ncols=len(components), figsize=(20, 6))
     
     for i, k in enumerate(components):
         axs[0, i].imshow(reconstructed_imgs1[i].reshape(dim_x, dim_y), cmap='gray')
